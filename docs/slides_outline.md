@@ -22,7 +22,7 @@ slide earns marks for.
 | 12 | The privacy–robustness tension | M1 | Vulnerability understanding |
 | 13 | Methodology & architecture | M2 | C3 |
 | 14 | Dataset & non-IID simulation | M2 | C3 |
-| 15 | Live demo & dashboard | M3 | Outcome |
+| 15 | Live demo: attack and defense | M1 (M3 on dashboard) | Imposing attacks · Outcome |
 | 16 | Expected outcomes & evaluation metrics | M2 | Outcome (5%) · C2 |
 | 17 | Timeline | M3 | Submission |
 | 18 | Responsibility matrix | M3 | Submission · C4 |

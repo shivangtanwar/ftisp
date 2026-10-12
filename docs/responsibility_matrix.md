@@ -2,7 +2,7 @@
 
 | ID | Member | Year | Role |
 |---|---|---|---|
-| M1 | Shivang Tanwar | Final | Project lead · FL core · secure aggregation · integration |
+| M1 | Shivang Tanwar | Final | Project lead · system architect · FL core · secure aggregation · integration · live demo |
 | M2 | Aaryan Masson | Final | Data engineering · evaluation & results |
 | M3 | Akashita | Final | Dashboard & API · report |
 | M4 | Abhishek Shukla | Third | Attack engineering (red team) |
@@ -15,21 +15,23 @@
 | Workstream | M1 | M2 | M3 | M4 | M5 |
 |---|:-:|:-:|:-:|:-:|:-:|
 | Project planning & integration | **A/R** | C | C | C | C |
+| System architecture & design | **A/R** | C | C | C | C |
 | Problem definition & threat model | **A/R** | I | C | **R** | C |
 | Dataset loading & preprocessing (UNSW-NB15) | A | **R** | I | I | I |
 | Non-IID partitioning (Dirichlet / shards) | A | **R** | I | C | C |
 | Model & local training | **A/R** | C | I | I | I |
 | Federated loop & FedAvg | **A/R** | C | I | C | C |
-| Poisoning attacks (label-flip, update-scaling) | A | I | I | **R** | C |
+| Poisoning attacks (label-flip, update-scaling) | **A/R** | I | I | **R** | C |
 | Membership-inference attack | A | C | I | **R** | C |
-| Robust aggregation (median, trimmed-mean, Krum) | A | I | I | C | **R** |
+| Robust aggregation (median, trimmed-mean, Krum) | **A/R** | I | I | C | **R** |
 | Differential privacy (clipping + noise) | A | I | I | C | **R** |
 | Secure aggregation (X25519 + pairwise masking) | **A/R** | I | I | I | C |
-| Experiments, metrics & plots | A | **R** | C | C | C |
+| Experiments, metrics & plots | **A/R** | **R** | C | C | C |
 | Dashboard (FastAPI + WebSocket + Chart.js) | A | C | **R** | I | I |
 | Unit tests | A | C | C | C | **R** |
 | Report & documentation | A | C | **R** | C | C |
-| Presentation & demo | **A/R** | R | R | R | R |
+| Live demo (build & run) | **A/R** | C | R | C | C |
+| Presentation | **A/R** | R | R | R | R |
 
 ## Ownership and viva focus
 
@@ -38,7 +40,7 @@ in one minute.
 
 | Member | Owns (code) | Must be able to explain |
 |---|---|---|
-| Shivang Tanwar | `fl/server.py`, `fl/client.py`, `fl/secure_agg.py`, `models/` | FedAvg; why one malicious client breaks it; the secure aggregation protocol; why secure and robust aggregation conflict |
+| Shivang Tanwar | `fl/server.py`, `fl/client.py`, `fl/secure_agg.py`, `models/`, `scripts/`; co-owner of `attacks/poisoning.py` and `fl/aggregation.py` | The whole system end to end; FedAvg; why one malicious client breaks it; the secure aggregation protocol; why secure and robust aggregation conflict |
 | Aaryan Masson | `data/`, `eval/` | UNSW-NB15 features and labels; what non-IID means and why it slows FedAvg; Dirichlet α; how each metric is computed |
 | Akashita | `api/`, `static/`, report | Dashboard architecture; REST vs WebSocket; how results stream to the browser; securing the endpoint in deployment (auth, TLS) |
 | Abhishek Shukla | `attacks/` | Adversary model; label-flip vs update-scaling; membership inference and ROC/AUC; why per-client models leak more |

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FTISP · Federated Threat Intelligence Sharing</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="viz-root">
+  <header class="page-header">
+    <div>
+      <h1>Federated Threat Intelligence Sharing Platform</h1>
+      <p class="subtitle">Organizations jointly train an intrusion detector on UNSW-NB15 without sharing raw traffic. Poison the federation, then defend it.</p>
+    </div>
+  </header>
+
+  <form id="controls" class="controls" autocomplete="off">
+    <label>Preset
+      <select id="preset"><option value="">Custom</option></select>
+    </label>
+    <label>Aggregator
+      <select name="aggregator">
+        <option value="fedavg">FedAvg</option>
+        <option value="median">Median</option>
+        <option value="trimmed_mean">Trimmed mean</option>
+        <option value="krum">Krum</option>
+      </select>
+    </label>
+    <label>Data
+      <select name="partition">
+        <option value="dirichlet">Non-IID (α 0.5)</option>
+        <option value="iid">IID</option>
+      </select>
+    </label>
+    <label>Organizations
+      <input name="n_clients" type="number" min="4" max="30" value="10">
+    </label>
+    <label>Attack
+      <select name="attack">
+        <option value="none">None</option>
+        <option value="label_flip">Label-flip poisoning</option>
+      </select>
+    </label>
+    <label>Attackers
+      <input name="n_malicious" type="number" min="0" max="14" value="3">
+    </label>
+    <label>Boost
+      <select name="boost">
+        <option value="1">1× (stealthy)</option>
+        <option value="10">10× (scaled)</option>
+      </select>
+    </label>
+    <label>Attack from round
+      <input name="attack_start_round" type="number" min="1" max="100" value="10">
+    </label>
+    <label>Rounds
+      <input name="rounds" type="number" min="1" max="100" value="30">
+    </label>
+    <div class="buttons">
+      <button type="submit" id="run">Run</button>
+      <button type="button" id="stop" disabled>Stop</button>
+      <button type="button" id="clear" class="ghost">Clear comparison</button>
+    </div>
+  </form>
+
+  <p id="scenario" class="scenario"></p>
+
+  <section class="tiles" aria-live="polite">
+    <div class="tile"><span class="tile-label">Round</span><span class="tile-value" id="t-round">–</span></div>
+    <div class="tile"><span class="tile-label">Attacks detected</span><span class="tile-value" id="t-detected">–</span></div>
+    <div class="tile"><span class="tile-label">False alarms</span><span class="tile-value" id="t-false">–</span></div>
+    <div class="tile"><span class="tile-label">Accuracy (10 classes)</span><span class="tile-value" id="t-acc">–</span></div>
+    <div class="tile tile-status" id="status"><span class="status-icon" aria-hidden="true">•</span><span id="status-text">Idle</span></div>
+  </section>
+
+  <section class="charts">
+    <figure class="card"><figcaption>Attacks detected</figcaption><div class="chart-box"><canvas id="c-detected"></canvas></div></figure>
+    <figure class="card"><figcaption>False alarms on normal traffic</figcaption><div class="chart-box"><canvas id="c-false"></canvas></div></figure>
+    <figure class="card"><figcaption>Overall accuracy</figcaption><div class="chart-box"><canvas id="c-acc"></canvas></div></figure>
+  </section>
+
+  <section class="card">
+    <h2>Organizations</h2>
+    <p class="note">The server sees only each organization's model update, never its traffic. It flags updates far from the consensus. Ground truth is shown for the demo; the server doesn't know it.</p>
+    <div class="table-wrap">
+      <table id="orgs">
+        <thead><tr><th>Org</th><th class="num">Flows</th><th>Mostly sees</th><th>Update size</th><th class="num">Distance from consensus</th><th>Server verdict</th><th>Ground truth</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <details class="card">
+    <summary>Round-by-round table</summary>
+    <div class="table-wrap">
+      <table id="rounds">
+        <thead><tr><th class="num">Round</th><th class="num">Attacks detected</th><th class="num">False alarms</th><th class="num">Accuracy</th><th>Flagged orgs</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </details>
+</div>
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

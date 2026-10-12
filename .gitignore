@@ -29,6 +29,7 @@ data/*
 # Generated results (plots, logs) — reproducible from scripts/
 results/*
 !results/.gitkeep
+!results/README.md
 
 # OS / editor
 .DS_Store

@@ -25,7 +25,9 @@ curious server can infer private information from updates.
 
 ## Status
 
-See [`docs/timeline.md`](docs/timeline.md) for the phase plan and current progress.
+Data pipeline, federated loop, the poisoning attack and three robust aggregators are working
+and measured. Next: differential privacy, membership inference, secure aggregation, then the
+dashboard polish. See [`docs/timeline.md`](docs/timeline.md).
 
 ## Layout
 
@@ -47,10 +49,19 @@ pip install -r requirements.txt
 
 ## Run
 
-Entry points are added as the build phases land (see the timeline).
-
 ```bash
-python scripts/run_simulation.py --scenario baseline_iid   # headless experiment
-python scripts/run_dashboard.py                            # live dashboard
-pytest -q                                                  # unit tests
+python scripts/run_simulation.py --scenario poison_krum   # one scenario, round by round
+python scripts/run_experiments.py                         # full suite -> results/ (~4 min)
+python scripts/run_dashboard.py                           # live dashboard on :8000
+pytest -q                                                 # unit tests
 ```
+
+`--scenario` accepts any file in `configs/scenarios/`. The dashboard lets you pick an
+aggregator, turn the poisoning on and off, and watch each organization's update get flagged
+(or not) round by round.
+
+## Results so far
+
+Plain FedAvg is destroyed by three poisoned organizations: attacks detected falls from 93% to
+13% and accuracy drops 27 points. Median, trimmed mean and Krum all hold, and none of them ever
+flags an honest organization. Numbers, figures and caveats are in [`results/`](results/README.md).

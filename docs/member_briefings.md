@@ -141,6 +141,12 @@ n − f − 2 nearest neighbours; pick the update with the smallest score. Hones
 so the chosen one is surrounded by honest neighbours. It needs n ≥ 2f + 3; past that the attackers
 can form their own cluster. It also discards information, so it converges more slowly on non-IID data.
 
+**Q: Why is Krum's clean accuracy lower than the others?** Because Krum returns one selected
+client's update rather than an average, so it ignores the data of every other organization. Its
+accuracy ceiling is therefore the quality of a single client's local model, not the federation's.
+Multi-Krum averages the top-m updates and closes most of that gap; we implement the single-update
+version and note this as a known limitation.
+
 **Q: What does differential privacy guarantee?** The output looks almost the same whether or not any
 single individual's data was included, so an observer cannot confidently tell if a given record
 was used. ε measures how much "almost": smaller ε means stronger privacy.
