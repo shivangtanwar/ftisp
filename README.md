@@ -20,14 +20,15 @@ curious server can infer private information from updates.
 - Trains a local intrusion detector per organization and aggregates updates with **FedAvg**.
 - **Imposes attacks**: model poisoning (label-flip, update-scaling) and membership inference.
 - **Defends**: robust aggregation (median, trimmed-mean, Krum), differential privacy
-  (update clipping + Gaussian noise), and secure aggregation (pairwise masking).
+  (update clipping + Gaussian noise), and secure aggregation (X25519 + pairwise masking).
 - Streams results to a **live dashboard** (FastAPI + Chart.js).
 
 ## Status
 
-Data pipeline, federated loop, the poisoning attack and three robust aggregators are working
-and measured. Next: differential privacy, membership inference, secure aggregation, then the
-dashboard polish. See [`docs/timeline.md`](docs/timeline.md).
+All planned mechanisms are implemented and measured: data pipeline, federated loop, poisoning
+attack, three robust aggregators, differential privacy, membership inference and secure
+aggregation, plus the live dashboard. Remaining: report, final deck and the stretch attacks
+(backdoor, gradient leakage). See [`docs/timeline.md`](docs/timeline.md).
 
 ## Layout
 
@@ -51,7 +52,8 @@ pip install -r requirements.txt
 
 ```bash
 python scripts/run_simulation.py --scenario poison_krum   # one scenario, round by round
-python scripts/run_experiments.py                         # full suite -> results/ (~4 min)
+python scripts/run_experiments.py                         # poisoning vs defenses -> results/
+python scripts/run_privacy.py                             # membership inference + DP -> results/
 python scripts/run_dashboard.py                           # live dashboard on :8000
 pytest -q                                                 # unit tests
 ```
@@ -63,5 +65,7 @@ aggregator, turn the poisoning on and off, and watch each organization's update 
 ## Results so far
 
 Plain FedAvg is destroyed by three poisoned organizations: attacks detected falls from 93% to
-13% and accuracy drops 27 points. Median, trimmed mean and Krum all hold, and none of them ever
-flags an honest organization. Numbers, figures and caveats are in [`results/`](results/README.md).
+5% and accuracy drops 31 points. Median, trimmed mean and Krum all hold, and none of them ever
+flags an honest organization. Membership inference is at chance at federation scale and only
+bites when a small organization's model overfits — where DP noise removes it. Numbers, figures
+and caveats are in [`results/`](results/README.md).

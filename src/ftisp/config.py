@@ -31,6 +31,12 @@ class Config:
     boost: float = 1.0
     attack_start_round: int = 1
 
+    holdout: float = 0.0
+    shard_size: int = 0  # cap each organization's training set (0 = no cap)
+    clip_norm: float = 1.0
+    dp_sigma: float = 0.0
+    secure_agg: bool = False
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["hidden"] = list(self.hidden)

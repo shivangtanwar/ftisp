@@ -27,7 +27,8 @@ def outlier_scores(updates: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     Only available when the server can see individual updates (robust mode).
     """
-    dist = np.linalg.norm(updates - np.median(updates, axis=0), axis=1)
+    # float64: DP noise can make float32 norms overflow.
+    dist = np.linalg.norm(updates.astype(np.float64) - np.median(updates, axis=0), axis=1)
     med = np.median(dist)
     mad = 1.4826 * np.median(np.abs(dist - med))
     flagged = dist > med + 3.0 * max(mad, 1e-12)

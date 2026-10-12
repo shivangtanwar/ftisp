@@ -1,6 +1,13 @@
 import numpy as np
 
 
+def _softmax(z: np.ndarray) -> np.ndarray:
+    """Numerically stable: DP noise can push weights large enough to overflow exp()."""
+    z = z - z.max(axis=1, keepdims=True)
+    e = np.exp(z)
+    return e / e.sum(axis=1, keepdims=True)
+
+
 class MLP:
     """ReLU multilayer perceptron whose parameters live in one flat float32 vector.
 
@@ -32,17 +39,15 @@ class MLP:
 
     def logits(self, theta: np.ndarray, X: np.ndarray) -> np.ndarray:
         layers = self._layers(theta)
-        h = X
+        h = X.astype(np.float64)
         for W, b in layers[:-1]:
             h = np.maximum(h @ W + b, 0.0)
+            np.clip(h, -1e12, 1e12, out=h)
         W, b = layers[-1]
         return h @ W + b
 
     def predict_proba(self, theta: np.ndarray, X: np.ndarray) -> np.ndarray:
-        z = self.logits(theta, X)
-        z = z - z.max(axis=1, keepdims=True)
-        e = np.exp(z)
-        return e / e.sum(axis=1, keepdims=True)
+        return _softmax(self.logits(theta, X))
 
     def predict(self, theta: np.ndarray, X: np.ndarray) -> np.ndarray:
         return self.logits(theta, X).argmax(axis=1)
@@ -55,14 +60,12 @@ class MLP:
         self, theta: np.ndarray, X: np.ndarray, y: np.ndarray
     ) -> tuple[float, np.ndarray]:
         layers = self._layers(theta)
-        acts = [X]
+        acts = [X.astype(np.float64)]
         for W, b in layers[:-1]:
             acts.append(np.maximum(acts[-1] @ W + b, 0.0))
+            np.clip(acts[-1], -1e12, 1e12, out=acts[-1])
         W, b = layers[-1]
-        z = acts[-1] @ W + b
-        z = z - z.max(axis=1, keepdims=True)
-        p = np.exp(z)
-        p /= p.sum(axis=1, keepdims=True)
+        p = _softmax(acts[-1] @ W + b)
         n = len(y)
         loss = float(-np.log(np.clip(p[np.arange(n), y], 1e-12, None)).mean())
 

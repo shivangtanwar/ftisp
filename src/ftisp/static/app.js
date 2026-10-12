@@ -128,6 +128,7 @@ function params() {
   return {
     aggregator: get("aggregator"),
     partition: get("partition"),
+    privacy: get("privacy"),
     alpha: 0.5,
     n_clients: Number(get("n_clients")),
     rounds: Number(get("rounds")),
@@ -140,18 +141,25 @@ function params() {
 
 function signature(p) {
   const { aggregator, ...rest } = p;
+  rest.privacy = p.privacy;
   if (rest.attack === "none") delete rest.attack_start_round;
   return JSON.stringify(rest);
 }
 
 function describe(p) {
   const data = p.partition === "iid" ? "IID data" : "non-IID data (Dirichlet α 0.5)";
+  const privacy =
+    p.privacy === "dp"
+      ? "DP noise on every honest update"
+      : p.privacy === "secure"
+        ? "secure aggregation (server sees only the sum)"
+        : "no privacy mechanism";
   const attack =
     p.attack === "none"
       ? "no attack"
       : `label-flip poisoning by ${p.n_malicious} organization${p.n_malicious === 1 ? "" : "s"}` +
         `${p.boost > 1 ? `, updates boosted ${p.boost}×` : ", unboosted"}, from round ${p.attack_start_round}`;
-  return `${p.n_clients} organizations · ${data} · ${attack}`;
+  return `${p.n_clients} organizations · ${data} · ${privacy} · ${attack}`;
 }
 
 function setStatus(kind, text) {
@@ -177,6 +185,12 @@ function cell(text, className) {
 function buildOrgTable(info) {
   const body = $("orgs").querySelector("tbody");
   body.replaceChildren();
+  const secure = current.params.privacy === "secure";
+  $("privacy-note").hidden = !secure;
+  if (secure) {
+    $("privacy-note").textContent =
+      "Secure aggregation is on: the server receives only the masked sum, so it cannot inspect or flag any individual update.";
+  }
   const malicious = new Set(info.malicious);
   info.client_class_counts.forEach((counts, cid) => {
     const total = counts.reduce((a, b) => a + b, 0);
@@ -184,17 +198,22 @@ function buildOrgTable(info) {
     const tr = document.createElement("tr");
     const barCell = document.createElement("td");
     barCell.className = "bar-cell";
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    bar.style.width = "0";
-    barCell.append(bar);
+    if (secure) {
+      barCell.textContent = "masked";
+      barCell.style.color = "var(--muted)";
+    } else {
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      bar.style.width = "0";
+      barCell.append(bar);
+    }
     tr.append(
       cell(org(cid)),
       cell(total.toLocaleString(), "num"),
       cell(`${info.classes[top]} ${Math.round((100 * counts[top]) / total)}%`),
       barCell,
-      cell("–", "num"),
-      cell("–"),
+      cell(secure ? "masked" : "–", secure ? "" : "num"),
+      cell(secure ? "masked" : "–"),
       cell(malicious.has(cid) ? "Attacker" : "honest", malicious.has(cid) ? "truth-attacker" : ""),
     );
     body.append(tr);
@@ -202,6 +221,7 @@ function buildOrgTable(info) {
 }
 
 function updateOrgTable(record) {
+  if (current.params.privacy === "secure") return;
   const rows = $("orgs").querySelectorAll("tbody tr");
   const maxNorm = Math.max(...record.clients.map((c) => c.update_norm));
   record.clients.forEach((c, i) => {

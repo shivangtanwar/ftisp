@@ -170,3 +170,94 @@ def plot_partition(result: dict, path: Path) -> None:
     bar.set_ticklabels(["0%", "50%", "100%"])
     bar.set_label("share of the organization's flows", color=INK_2, fontsize=8)
     _save(fig, path)
+
+
+def plot_mia_roc(curves: dict[str, dict], path: Path) -> None:
+    """ROC of the membership-inference attack against one organization's data."""
+    colors = {"No defence": AGG_COLORS["fedavg"], "DP": AGG_COLORS["krum"]}
+    fig, (ax,) = _figure(width=5.6, height=4.4)
+    for i, (name, result) in enumerate(curves.items()):
+        curve = result.get("local") or result
+        color = colors.get(name, list(AGG_COLORS.values())[i])
+        ax.plot(curve["fpr"], curve["tpr"], color=color, linewidth=2,
+                solid_capstyle="round", clip_on=False)
+    ax.plot([0, 1], [0, 1], color=AXIS, linewidth=1)
+    ax.annotate("guessing (AUC 0.5)", xy=(0.62, 0.62), xytext=(6, -10),
+                textcoords="offset points", fontsize=8, color=MUTED)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xticks([0, 0.5, 1])
+    ax.set_yticks([0, 0.5, 1])
+    ax.set_xticklabels(["0%", "50%", "100%"])
+    ax.set_yticklabels(["0%", "50%", "100%"])
+    ax.grid(axis="y")
+    ax.set_xlabel("False positive rate")
+    ax.set_ylabel("True positive rate")
+    ax.set_title("Membership inference: one organization, 300 records, 100 epochs", loc="left", fontsize=11,
+                 color=INK, pad=10)
+    handles, labels = [], []
+    for i, (name, result) in enumerate(curves.items()):
+        color = colors.get(name, list(AGG_COLORS.values())[i])
+        curve = result.get("local") or result
+        handles.append(plt.Line2D([], [], color=color, linewidth=2))
+        labels.append(f"{name} (AUC {curve['auc']:.2f})")
+    ax.legend(handles, labels, frameon=False, fontsize=9, labelcolor=INK_2, loc="lower right")
+    _save(fig, path)
+
+
+def plot_mia_overfitting(result: dict, path: Path) -> None:
+    """Membership leakage grows with overfitting, and DP noise flattens it."""
+    fig, (ax,) = _figure(width=7.2, height=4.2)
+    epochs = [p[0] for p in result["plain"]]
+    aucs = [p[1] for p in result["plain"]]
+    dp_aucs = [p[1] for p in result["private"]]
+    ax.plot(epochs, aucs, color=AGG_COLORS["fedavg"], linewidth=2, solid_capstyle="round")
+    ax.plot(epochs, aucs, "o", color=AGG_COLORS["fedavg"], markersize=8,
+            markeredgecolor=SURFACE, markeredgewidth=2, zorder=3, clip_on=False)
+    ax.plot(epochs, dp_aucs, color=AGG_COLORS["krum"], linewidth=2, solid_capstyle="round")
+    ax.plot(epochs, dp_aucs, "o", color=AGG_COLORS["krum"], markersize=8,
+            markeredgecolor=SURFACE, markeredgewidth=2, zorder=3, clip_on=False)
+    ax.axhline(0.5, color=AXIS, linewidth=1)
+    ax.annotate("guessing (AUC 0.5)", xy=(epochs[0], 0.5), xytext=(0, -14),
+                textcoords="offset points", fontsize=8, color=MUTED)
+    ax.set_ylim(0.4, 0.8)
+    ax.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8])
+    ax.set_xlabel("Local training epochs (one organization, 300 records)")
+    ax.set_ylabel("Membership inference AUC")
+    ax.set_title("Leakage follows overfitting", loc="left", fontsize=11, color=INK, pad=10)
+    ax.legend([plt.Line2D([], [], color=AGG_COLORS["fedavg"], linewidth=2),
+               plt.Line2D([], [], color=AGG_COLORS["krum"], linewidth=2)],
+              ["No defence", f"With DP noise (sigma={result['sigma']})"],
+              frameon=False, fontsize=9, labelcolor=INK_2, loc="upper left")
+    _save(fig, path)
+
+
+def plot_privacy_tradeoff(points: list[tuple[float, float, float]], path: Path) -> None:
+    """Two measures of the same knob: privacy (membership AUC) and utility (accuracy)."""
+    fig, axes = _figure(ncols=2, width=11.0, height=4.0)
+    sigmas = [p[0] for p in points]
+    panels = [
+        (axes[0], [p[1] for p in points], "Membership inference", "Privacy (lower is better)",
+         AGG_COLORS["fedavg"], lambda v: f"AUC {v:.2f}"),
+        (axes[1], [p[2] for p in points], "Utility", "Accuracy", AGG_COLORS["krum"],
+         lambda v: f"{v:.0%}"),
+    ]
+    for ax, ys, title, ylabel, color, fmt in panels:
+        ax.plot(sigmas, ys, color=color, linewidth=2, solid_capstyle="round")
+        ax.plot(sigmas, ys, "o", color=color, markersize=8, markeredgecolor=SURFACE,
+                markeredgewidth=2, zorder=3, clip_on=False)
+        ax.annotate(fmt(ys[0]), xy=(sigmas[0], ys[0]), xytext=(6, 8),
+                    textcoords="offset points", fontsize=9, color=INK_2)
+        ax.annotate(fmt(ys[-1]), xy=(sigmas[-1], ys[-1]), xytext=(-6, 8),
+                    textcoords="offset points", ha="right", fontsize=9, color=INK_2)
+        ax.set_xlabel("DP noise multiplier (sigma)")
+        ax.set_ylabel(ylabel)
+        ax.set_title(title, loc="left", fontsize=11, color=INK, pad=10)
+        ax.set_xticks(sigmas)
+    axes[0].set_ylim(0.45, 1.0)
+    axes[0].set_yticks([0.5, 0.75, 1.0])
+    axes[1].set_ylim(0, 1.0)
+    axes[1].set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+    axes[1].set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
+    fig.tight_layout(w_pad=6)
+    _save(fig, path)

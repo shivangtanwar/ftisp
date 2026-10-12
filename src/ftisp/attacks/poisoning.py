@@ -35,8 +35,9 @@ class LabelFlipClient(Client):
     ) -> np.ndarray:
         if not self.is_active(round_no):
             return super().local_update(model, theta, settings, rng, round_no)
-        poisoned = np.full_like(self.y, self.target)
+        X, y = self.members()
+        poisoned = np.full_like(y, self.target)
         trained = sgd_train(
-            model, theta, self.X, poisoned, settings.epochs, settings.lr, settings.batch_size, rng
+            model, theta, X, poisoned, settings.epochs, settings.lr, settings.batch_size, rng
         )
         return self.boost * (trained - theta)

@@ -34,6 +34,13 @@
         <option value="iid">IID</option>
       </select>
     </label>
+    <label>Privacy
+      <select name="privacy">
+        <option value="none">None</option>
+        <option value="dp">DP noise</option>
+        <option value="secure">Secure aggregation</option>
+      </select>
+    </label>
     <label>Organizations
       <input name="n_clients" type="number" min="4" max="30" value="10">
     </label>
@@ -84,6 +91,7 @@
   <section class="card">
     <h2>Organizations</h2>
     <p class="note">The server sees only each organization's model update, never its traffic. It flags updates far from the consensus. Ground truth is shown for the demo; the server doesn't know it.</p>
+    <p class="note" id="privacy-note" hidden></p>
     <div class="table-wrap">
       <table id="orgs">
         <thead><tr><th>Org</th><th class="num">Flows</th><th>Mostly sees</th><th>Update size</th><th class="num">Distance from consensus</th><th>Server verdict</th><th>Ground truth</th></tr></thead>

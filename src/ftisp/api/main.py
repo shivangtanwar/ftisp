@@ -22,6 +22,8 @@ log = logging.getLogger("ftisp.api")
 
 class RunRequest(BaseModel):
     aggregator: Literal["fedavg", "median", "trimmed_mean", "krum"] = "fedavg"
+    privacy: Literal["none", "dp", "secure"] = "none"
+    dp_sigma: float = Field(0.2, ge=0, le=2)
     partition: Literal["iid", "dirichlet"] = "dirichlet"
     alpha: float = Field(0.5, ge=0.05, le=100)
     n_clients: int = Field(10, ge=4, le=30)
@@ -34,18 +36,26 @@ class RunRequest(BaseModel):
     pace: float = Field(0.35, ge=0, le=3, description="minimum seconds per round, for live demos")
 
     @model_validator(mode="after")
-    def _attackers_are_a_minority(self):
+    def _check(self):
         if 2 * self.n_malicious >= self.n_clients:
             raise ValueError("malicious organizations must be fewer than half of all organizations")
+        if self.privacy == "secure" and self.aggregator != "fedavg":
+            raise ValueError(
+                "secure aggregation hides individual updates, so it only works with FedAvg"
+            )
         return self
 
     def to_config(self, data_dir: str):
+        values = self.model_dump(exclude={"pace", "privacy", "dp_sigma"})
+        values["secure_agg"] = self.privacy == "secure"
+        values["clip_norm"] = 0.5
+        values["dp_sigma"] = self.dp_sigma if self.privacy == "dp" else 0.0
         return make_config(
             name="dashboard",
             data_dir=data_dir,
             # The server assumes at most 3 attackers, capped by what Krum can tolerate.
             krum_f=min(3, (self.n_clients - 3) // 2),
-            **self.model_dump(exclude={"pace"}),
+            **values,
         )
 
 

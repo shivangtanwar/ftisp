@@ -46,6 +46,12 @@ gantt
 | M5 | Dashboard live; all experiments reproducible from one command | 9 Nov |
 | M6 | Final presentation | week of 9–13 Nov |
 
+## Status
+
+Phases 0–5 are implemented and measured (poisoning, robust aggregation, DP, membership inference,
+secure aggregation, dashboard). What remains is the report, the final deck, and the stretch
+attacks. Figures and numbers: [`../results/README.md`](../results/README.md).
+
 ## Scope control
 
 If the schedule slips, work is cut from the bottom up. The **must** tier alone is a complete

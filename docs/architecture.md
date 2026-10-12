@@ -33,7 +33,9 @@
 1. Server sends the current global parameters θₜ to every client.
 2. Each client trains for E local epochs on its private data, starting from θₜ, and computes
    its update Δᵢ = θᵢ − θₜ.
-3. *(DP enabled)* The client clips Δᵢ to L2-norm ≤ C and adds Gaussian noise N(0, σ²C²I).
+3. *(DP enabled)* The client clips Δᵢ to L2-norm ≤ C and adds Gaussian noise N(0, σ²C²I). This is a
+   client-side measure, so the adversary in our experiments simply does not apply it — which is why
+   DP must be compared against an attacker who skips it, not against an attacker who respects it.
 4. *(Malicious client)* The attacker substitutes a poisoned update — trained on flipped labels,
    or multiplied by a factor γ.
 5. The server aggregates: Δ = AGG(Δ₁ … Δₖ) and sets θₜ₊₁ = θₜ + Δ.
@@ -50,6 +52,7 @@ filters on them. The two goals are separated into explicit modes (see `threat_mo
 | Aggregator | FedAvg / median / trimmed-mean / Krum | FedAvg |
 | Stops malicious client (A1) | yes, up to the breakdown point | no |
 | Stops curious server (A2) | partially (DP only) | yes |
+| Implemented as | `aggregator` setting | `secure_agg: true` (requires FedAvg) |
 
 ## 4. Secure aggregation protocol
 
