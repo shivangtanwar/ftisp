@@ -21,7 +21,9 @@ organizations holding non-IID data. We impose three attacks from the standard FL
 **malicious client** performing label-flip poisoning with update boosting, a **backdoor** that
 teaches the shared model to wave through any flow carrying a secret trigger, and a **curious
 server** performing membership inference against each organization's reconstructed local model, and
-a **gradient-inversion** (DLG) reconstruction of a training record. We
+a **gradient-inversion** (DLG) reconstruction of a training record. We also implement a **Sybil
+participant** and a **weight-inflation** attack, and an Ed25519 identity layer that makes updates
+attributable without, we show, making a Sybil impossible. We
 then implement and evaluate three layers of defense: Byzantine-robust aggregation (coordinate-wise
 median, trimmed mean, Krum, Multi-Krum), differential privacy (client-side clipping with Gaussian
 noise), and cryptographic secure aggregation (X25519 key agreement, HKDF-SHA256, ChaCha20 pairwise
@@ -78,10 +80,10 @@ is protected by hiding them.
 
 1. A complete federated intrusion-detection platform: non-IID client simulation, local training,
    FedAvg aggregation, and a live dashboard, all runnable on commodity CPUs.
-2. Four implemented attacks — label-flip/update-boosting poisoning, a trigger-based backdoor,
-   loss-threshold membership inference, and gradient inversion — with the attacker's capability
-   modelled precisely (notably, the attacker is assumed to skip any privacy mechanism it is not
-   forced to apply).
+2. Six implemented attacks — label-flip/update-boosting poisoning, a trigger-based backdoor,
+   loss-threshold membership inference, gradient inversion, weight inflation, and a Sybil
+   participant — with the attacker's capability modelled precisely (notably, the attacker is
+   assumed to skip any privacy mechanism it is not forced to apply).
 3. Three implemented defenses — robust aggregation, differential privacy, and cryptographic secure
    aggregation — evaluated against those attacks.
 4. A quantified statement of the **privacy–robustness tension**, demonstrated as an experiment
@@ -505,7 +507,41 @@ The mechanism is the same one that put membership inference at chance: both atta
 belonging to *one* record, and a federated client averages over many local steps before anything
 leaves the organization. An average has no single preimage.
 
-### 6.8 Secure aggregation is correct and hides individual updates
+### 6.8 Identity: weight inflation, Sybil, and what authentication actually fixes
+
+The platform originally had no notion of client identity: any participant could join and call
+itself an organization, and nothing checked a declared sample count. FedAvg weights each client by
+that declared count, so an attacker can dominate the average simply by lying about it. Table 10
+separates this from the better-known Sybil attack, and the distinction is the point.
+
+**Table 10 — influence concentration**
+
+| Scenario | Accuracy | Detected | Largest share of influence |
+|---|--:|--:|--:|
+| Baseline (one identity per organization) | 77.5% | 92.1% | 10% |
+| **Weight inflation** (one attacker declares 20× its data) | **44.9%** | **0.0%** | **66%** |
+| **Sybil** (one operator, 21 ordinary-sized identities) | — | — | **3.6%** |
+
+Weight inflation is the cheaper attack and the more damaging one: detection falls to **0.0%**, so
+the shared detector is completely disabled, while the member list looks entirely normal. It is
+caught by concentration measures — the largest single share rises to 66% against an equal share of
+10%. A Sybil of ordinary-sized identities is not caught by those measures at all: the operator
+holds 75% of the weight, yet the largest single share is 3.6% and the Herfindahl index 0.036, which
+is indistinguishable from a healthy 28-member federation.
+
+We therefore added an identity layer: each organization holds an Ed25519 key pair, registers its
+public key, and signs the round number together with a digest of its update, which the server
+verifies before accepting. Tampered updates, replayed rounds, signatures forged by another
+organization and unregistered identities are all rejected.
+
+**It does not stop a Sybil, and the report says so.** A key is free to create, so an attacker who
+can register many keys still holds many identities. What authentication buys is accountability and
+a per-key bound — every update is attributable, so a per-key limit is enforceable and the audit
+names the offending key. Closing the attack itself requires a cost on registration or cross-client
+correlation [14]. Presenting authentication as a Sybil defense would be wrong, and Table 10 is what
+demonstrates why.
+
+### 6.9 Secure aggregation is correct and hides individual updates
 
 The masking scheme is verified directly. Over a round with 5 clients and 300 parameters, the server
 recovers the weighted sum with a maximum absolute error of **2.75 × 10⁻⁵**, which is the fixed-point
@@ -518,9 +554,9 @@ encoding's own precision, not a protocol error. Meanwhile:
   requires all clients to participate — which is precisely why full Bonawitz [2] adds Shamir secret
   sharing for dropout recovery, and why we cite it as future work rather than implementing it.
 
-### 6.9 Differential privacy trade-off
+### 6.10 Differential privacy trade-off
 
-**Table 9 — federated, clipping norm C = 0.5**
+**Table 11 — federated, clipping norm C = 0.5**
 
 | σ | Local MIA AUC | Accuracy |
 |--:|--:|--:|
@@ -536,9 +572,9 @@ The same mechanism is what removes leakage in the overfitting regime (Table 3), 
 something to defend. The lesson is that a privacy mechanism should be deployed in response to a
 measured threat, not by default.
 
-### 6.10 Verification
+### 6.11 Verification
 
-The test suite (`pytest -q`, 24 tests) checks the properties the results depend on rather than only
+The test suite (`pytest -q`, 28 tests) checks the properties the results depend on rather than only
 the happy path: MLP gradients against finite differences; that partitioning covers every sample
 exactly once; that small Dirichlet α produces more skew than large α; that each robust aggregator
 ignores a planted outlier while FedAvg does not; that Krum rejects an infeasible f; that the
@@ -546,8 +582,10 @@ attacker is exactly honest before its start round and poisons after; that secure
 cancel and the weighted sum is recovered; that masked updates are uniform and uncorrelated with the
 truth; that clipping bounds the norm; that zero noise returns the clipped update exactly; that the
 backdoor trigger sets exactly its own features without mutating its input; that the backdoor
-attacker is honest before its start round and teaches the trigger after it; and that gradient
-inversion recovers a record from its own gradient but not from a batch gradient.
+attacker is honest before its start round and teaches the trigger after it; that gradient
+inversion recovers a record from its own gradient but not from a batch gradient; that an
+Ed25519 signature is bound to both the update and the round; and that concentration measures flag
+weight inflation while remaining blind to a Sybil of ordinary-sized identities.
 
 ---
 
@@ -599,14 +637,17 @@ malicious ones. Only mechanisms that constrain the update regardless of the clie
    an ε bound. Per-sample DP-SGD with a Rényi accountant [5] would give one and is the natural next
    step.
 4. **Simulated, single-process federation.** Clients are simulated in one process; isolation is
-   logical, not enforced by the OS or the network. A real deployment needs separate hosts, mutual
-   authentication and TLS.
+   logical, not enforced by the OS or the network. Updates are signed (§6.8) and the dashboard is
+   served over TLS, but a real multi-host deployment would also need mutual TLS between
+   participants and a registration cost to make a Sybil expensive.
 5. **Gradient-inversion scope.** DLG is demonstrated (§6.6) but at a single-record scale; a
    reconstruction from a full federated update, and against a larger model, is not attempted.
 6. **Krum's remaining utility cost.** Multi-Krum (§6.3) recovers most of it, but still discards
    half the organizations' data and so trails FedAvg by about 4 points on clean data. A scheme that
    is both Byzantine-robust and uses every client's data remains open.
-7. **Byzantine-robust secure aggregation.** The tension in §6.5 is a known open problem [11];
+7. **Sybil detection.** Authentication makes a Sybil accountable but not expensive. A registration
+   cost or cross-client correlation [14] is required, and neither is implemented.
+8. **Byzantine-robust secure aggregation.** The tension in §6.5 is a known open problem [11];
    implementing a scheme that resolves it would be the strongest possible extension.
 
 ---
@@ -652,6 +693,7 @@ conflict is confronted explicitly.
 10. P. Kairouz, H. B. McMahan, et al. *Advances and Open Problems in Federated Learning.* Foundations and Trends in Machine Learning, 2021.
 11. J. So, B. Güler, A. S. Avestimehr. *Byzantine-Resilient Secure Federated Learning.* IEEE JSAC 2021.
 12. A. N. Bhagoji, S. Chakraborty, P. Mittal, S. Calo. *Analyzing Federated Learning through an Adversarial Lens.* ICML 2019.
+14. C. Fung, C. J. M. Yoon, I. Beschastnikh. *The Limitations of Federated Learning in Sybil Settings.* RAID 2020.
 13. N. Moustafa, J. Slay. *UNSW-NB15: A Comprehensive Data Set for Network Intrusion Detection Systems.* MilCIS 2015.
 
 ## Figure index
@@ -666,6 +708,7 @@ conflict is confronted explicitly.
 | 6 | `results/figures/privacy_tradeoff.png` | Privacy and accuracy against the DP noise multiplier |
 | 7 | `results/figures/backdoor.png` | The backdoor: accuracy and detection unchanged, trigger success rising |
 | 8 | `results/figures/dlg.png` | Gradient leakage: whether a record is actually recovered |
+| 9 | `results/figures/sybil.png` | Influence concentration: weight inflation versus a Sybil |
 
 ## Reproduction
 
@@ -676,7 +719,8 @@ python scripts/run_experiments.py    # Tables 1–2, Figures 1–3
 python scripts/run_backdoor.py       # Table 4, Figure 7
 python scripts/run_privacy.py        # Tables 5, 9, Figures 4–6
 python scripts/run_dlg.py            # Table 8, Figure 8
-pytest -q                            # 24 tests
+python scripts/run_sybil.py          # Table 10, Figure 9
+pytest -q                            # 28 tests
 python scripts/run_dashboard.py      # live demonstration on :8000
 ```
 

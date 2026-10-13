@@ -77,8 +77,12 @@ We adopt the standard FL threat model with three named adversaries:
 - **Capability:** one actor registers many fake client identities to amplify its influence
   on the average.
 - **Goal:** dominate aggregation with coordinated updates.
-- **Status:** enumerated in the taxonomy; partially addressed by robust aggregation (which
-  discards outlier updates) and discussed as future work (FoolsGold-style correlation defense).
+- **Status:** implemented (`attacks/sybil.py`). Two variants, and the distinction matters:
+  **weight inflation** — one client declaring more samples than it holds, which FedAvg trusts and
+  which takes detection to 0% — and a **Sybil of ordinary-sized identities**, which leaves every
+  per-client statistic looking normal. Concentration measures catch the first and are blind to the
+  second; detecting the second needs cross-client correlation (FoolsGold), cited as future work.
+  The identity layer (§ below) makes both *accountable* without making either impossible.
 
 ### Out of scope (stated explicitly, not hidden)
 - Malicious server that *deviates* from the protocol (only honest-but-curious is modeled).
@@ -105,7 +109,7 @@ Additional enumerated attacks: free-riding, model inversion, dropout/DoS.
 | **Membership inference** | Loss/confidence-threshold attack on the trained model | ROC: can attacker distinguish train vs non-train records? | Medium | **Implement** |
 | **Backdoor (trigger)** | Inject trigger pattern, relabel to target class | Clean accuracy ~high but trigger inputs misclassified | Medium | **Implement** |
 | **Gradient inversion (DLG)** | Optimize dummy input to match observed gradient | Reconstructed sample resembles real training data | Medium-Hard | **Implement** (single-record scale) |
-| **Sybil** | One actor, many identities | Effective attacker weight = N/n | Low to simulate | Enumerate + partial mitigation |
+| **Sybil** | One actor, many identities | Effective attacker weight = N/n | Low to simulate | **Implement** (mitigated only by registration cost; authentication bounds each key, not each actor) |
 | **Free-riding** | Submit noise, still receive global model | Attacker accuracy ≈ honest without contributing | Low | Enumerate only |
 | **Property inference / model inversion** | Infer dataset properties / reconstruct prototypes | Statistical divergence | Medium | Enumerate only |
 
@@ -121,6 +125,17 @@ label-flip poisoning — median and trimmed mean, which fully defeated the poiso
 about six in ten backdoored flows, because a backdoor's update is mostly honest and outlier
 filtering finds nothing extreme to remove. This is why the threat model lists attacks separately:
 **a defense validated against one is not validated against the others.**
+
+### 3.2 Identity and authentication
+
+Originally no client was identified: any participant could join and call itself an organization,
+and nothing verified a declared sample count. Each organization now holds an Ed25519 key pair and
+signs the round number with a digest of its update; the server verifies before accepting. This
+gives authenticity, replay protection and integrity, and makes every update attributable to a key.
+
+It does **not** stop a Sybil attack. Creating a key is free, so an attacker who can register many
+keys still controls many identities. Authentication bounds what each *key* can do, not what each
+*actor* can do; the remaining defenses are a cost on registration or cross-client correlation.
 
 ## 4. Defense taxonomy
 

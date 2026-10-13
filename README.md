@@ -18,16 +18,17 @@ curious server can infer private information from updates.
 
 - Simulates **N organizations**, each holding a private, **non-IID** slice of network-flow data.
 - Trains a local intrusion detector per organization and aggregates updates with **FedAvg**.
-- **Imposes attacks**: label-flip poisoning, a trigger-based backdoor, membership inference and
-  gradient inversion (DLG).
-- **Defends**: robust aggregation (median, trimmed-mean, Krum), differential privacy
-  (update clipping + Gaussian noise), and secure aggregation (X25519 + pairwise masking).
+- **Imposes attacks**: label-flip poisoning, a trigger-based backdoor, membership inference,
+  gradient inversion (DLG), weight inflation and a Sybil participant.
+- **Defends**: robust aggregation (median, trimmed-mean, Krum, Multi-Krum), differential privacy
+  (update clipping + Gaussian noise), secure aggregation (X25519 + pairwise masking), and an
+  Ed25519 identity layer that makes every update attributable.
 - Streams results to a **live dashboard** (FastAPI + Chart.js).
 
 ## Status
 
 All planned mechanisms are implemented and measured: data pipeline, federated loop, poisoning
-attack, three robust aggregators, differential privacy, membership inference and secure
+attack, four robust aggregators, differential privacy, membership inference and secure
 aggregation, plus the live dashboard. Remaining: report, final deck and the stretch attacks
 (backdoor, gradient leakage). See [`docs/timeline.md`](docs/timeline.md).
 
@@ -47,6 +48,7 @@ results/       generated plots and logs (gitignored)
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python scripts/fetch_data.py       # download UNSW-NB15 (not committed)
 ```
 
 ## Run
@@ -57,6 +59,7 @@ python scripts/run_experiments.py                         # poisoning vs defense
 python scripts/run_backdoor.py                            # backdoor attack -> results/
 python scripts/run_privacy.py                             # membership inference + DP -> results/
 python scripts/run_dlg.py                                 # gradient inversion -> results/
+python scripts/run_sybil.py                               # Sybil + weight inflation -> results/
 python scripts/build_deck.py                              # render the slide deck -> docs/deck.html
 python scripts/run_dashboard.py                           # live dashboard on :8000
 pytest -q                                                 # unit tests

@@ -95,6 +95,43 @@ This is the same structural protection that put membership inference at chance. 
 gradient that belongs to *one* record; federated clients average over many local steps before
 anything leaves the organization, and an average has no single preimage.
 
+## Identity, weight inflation and Sybil
+
+Reproduce with `python scripts/run_sybil.py`. Three scenarios, chosen to separate two attacks that
+are often conflated:
+
+| Scenario | Accuracy | Detected | Largest share of influence |
+|---|--:|--:|--:|
+| Baseline (one identity per organization) | 77.5% | 92.1% | 10% |
+| **Weight inflation** (one attacker declares 20× its data) | **44.9%** | **0.0%** | **66%** |
+| **Sybil** (one operator, 21 ordinary-sized identities) | — | — | **3.6%** |
+
+**Weight inflation is the cheaper and more damaging attack, and it is nearly invisible.** FedAvg
+weights each client by its *declared* sample count, and nothing verified that claim. One
+participant declaring 20× the data it holds takes detection from 92.1% to **0.0%** — the shared
+detector is completely disabled — while the member list looks entirely normal. Concentration
+measures do catch it: the largest single share rises to 66% against an equal share of 10%.
+
+**A Sybil of ordinary-sized identities is not visible to those measures at all.** Twenty-one extra
+identities declaring normal counts give the operator 75% of the federation's weight, yet the
+largest *single* share is only 3.6% and the Herfindahl index stays at 0.036 — indistinguishable
+from a healthy federation of 28 organizations. Detecting it needs correlation across clients
+(FoolsGold), not concentration.
+
+### What authentication changes
+
+Each organization now holds an Ed25519 key pair, registers its public key, and signs the round
+number together with a digest of its update. The server verifies before accepting. That gives
+authenticity, replay protection and integrity — a tampered update, a replayed round, a signature
+forged by another organization and an unregistered identity are all rejected.
+
+**It does not stop a Sybil, and we state that plainly.** A key is still free to create, so an
+attacker who can register many keys still controls many identities. What authentication buys is
+*accountability and a per-key bound*: every update is attributable, so a limit per key is
+enforceable and the audit trail names the offending key. Closing the attack itself needs a cost on
+registration (proof of work, stake, real-world vetting) or cross-client correlation. Claiming
+authentication "solves Sybil" would be wrong, and the experiment above is what shows why.
+
 ## Privacy: membership inference
 
 Reproduce with `python scripts/run_privacy.py`. The attack asks: given a model, was this specific

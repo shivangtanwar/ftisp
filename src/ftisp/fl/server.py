@@ -86,7 +86,14 @@ def run_federation(
     aggregate = make_aggregator(cfg.aggregator, cfg.trim_beta, cfg.krum_f)
     settings = TrainSettings(cfg.local_epochs, cfg.lr, cfg.batch_size)
     client_rngs = [_rng(cfg, 100 + c.cid) for c in clients]
-    weights = np.array([c.n_samples for c in clients], dtype=np.float64)
+    weights = np.array(
+        [
+            # The declared count, not the held count: an inflated claim is what the server trusts.
+            c.n_samples * (cfg.weight_inflation if c.malicious else 1.0)
+            for c in clients
+        ],
+        dtype=np.float64,
+    )
     share = weights / weights.sum()
 
     # The backdoor is scored on attack flows carrying the trigger: success means the model
@@ -166,6 +173,7 @@ def run_federation(
                 {
                     "cid": c.cid,
                     "n_samples": c.n_samples,
+                    "declared_samples": float(weights[i]),
                     "malicious": c.malicious,
                     "update_norm": float(np.linalg.norm(updates[i])),
                     "outlier_score": float(dist[i]),

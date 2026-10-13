@@ -98,3 +98,71 @@ def test_zero_sigma_returns_the_clipped_update_exactly():
     rng = np.random.default_rng(6)
     update = rng.normal(0, 5, size=100)
     np.testing.assert_allclose(privatize(update, 1.0, 0.0, rng), clip(update, 1.0))
+
+
+def test_signature_binds_the_update_and_the_round():
+    from ftisp.fl.identity import Organization, Registration, Registry
+
+    registry = Registry()
+    org = Organization.create("org-1")
+    registry.register(Registration(org.name, org.public_bytes))
+    update = np.random.default_rng(0).normal(size=64).astype(np.float32)
+    signature = org.sign(1, update)
+
+    assert registry.verify("org-1", 1, update, signature)
+    # A different payload fails: the signature covers a digest of the update.
+    tampered = update.copy()
+    tampered[0] += 1.0
+    assert not registry.verify("org-1", 1, tampered, signature)
+    # A different round fails: the round number is inside the signed message, so no replay.
+    assert not registry.verify("org-1", 2, update, signature)
+
+
+def test_signature_cannot_be_forged_by_another_organization():
+    from ftisp.fl.identity import Organization, Registration, Registry
+
+    registry = Registry()
+    alice, mallory = Organization.create("alice"), Organization.create("mallory")
+    registry.register(Registration(alice.name, alice.public_bytes))
+    registry.register(Registration(mallory.name, mallory.public_bytes))
+    update = np.random.default_rng(1).normal(size=32).astype(np.float32)
+    assert not registry.verify("alice", 1, update, mallory.sign(1, update))
+    assert not registry.verify("unknown", 1, update, alice.sign(1, update))
+
+
+def test_registry_audit_counts_accepts_and_rejects():
+    from ftisp.fl.identity import Organization, Registration, Registry
+
+    registry = Registry()
+    org = Organization.create("org-1")
+    registry.register(Registration(org.name, org.public_bytes))
+    update = np.random.default_rng(2).normal(size=16).astype(np.float32)
+    registry.verify("org-1", 1, update, org.sign(1, update))
+    registry.verify("org-1", 1, update + 1, org.sign(1, update))
+    entry = registry.audit()[0]
+    assert entry == {"name": "org-1", "accepted": 1, "rejected": 1}
+
+
+def test_sybil_report_flags_inflated_weight_but_not_a_plain_sybil():
+    """The distinction that matters: concentration detects inflation, not many identities."""
+    from ftisp.fl.identity import Organization, Registration, Registry, sybil_report
+
+    def registry_for(names):
+        registry = Registry()
+        for name in names:
+            org = Organization.create(name)
+            registry.register(Registration(org.name, org.public_bytes))
+        return registry
+
+    # One attacker declaring 20x its data: the largest share is far above the equal share.
+    inflated = sybil_report(
+        registry_for(["a", "b", "c", "d", "attacker"]),
+        {"a": 1000, "b": 1000, "c": 1000, "d": 1000, "attacker": 20000},
+    )
+    assert inflated["largest_share"] > 0.5
+
+    # Many identities of ordinary size: every share looks normal, and the attacker is invisible.
+    names = [f"honest-{i}" for i in range(7)] + [f"member-{i}" for i in range(21)]
+    plain = sybil_report(registry_for(names), {n: 1000 for n in names})
+    assert plain["largest_share"] < 0.1
+    assert plain["herfindahl"] < 0.1

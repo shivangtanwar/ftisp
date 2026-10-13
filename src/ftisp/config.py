@@ -31,6 +31,9 @@ class Config:
     boost: float = 1.0
     attack_start_round: int = 1
     poison_rate: float = 0.5
+    # A client may declare a sample count larger than it holds. FedAvg weights by the declared
+    # count, and nothing verified that claim before the identity layer existed.
+    weight_inflation: float = 1.0
 
     holdout: float = 0.0
     shard_size: int = 0  # cap each organization's training set (0 = no cap)

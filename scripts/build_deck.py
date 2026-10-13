@@ -310,6 +310,23 @@ slide(
     )
 
 slide(
+        "Identity: weight inflation, Sybil, and what authentication fixes",
+        figure("sybil.png", "Largest share of the federation's influence held by one party, against the equal share.")
+        + table(
+            ["Scenario", "Detected", "Largest share"],
+            [
+                ["Baseline", "92.1%", "10%"],
+                ["Weight inflation (20x declared data)", "0.0%", "66%"],
+                ["Sybil (21 ordinary-sized identities)", "—", "3.6%"],
+            ],
+            highlight={(1, 1)},
+        )
+        + '<p class="kicker">Weight inflation takes detection to zero and is caught by concentration measures. A Sybil of ordinary-sized identities is not caught by them at all — the operator holds 75% of the weight while every per-client statistic looks normal.</p>',
+        "M4 · M1",
+        "We added Ed25519 identity: every update is signed over the round and an update digest, so tampering, replay and forgery are rejected. It makes a Sybil accountable, not expensive — a key is still free to create, so this bounds each key, not each actor.",
+    )
+
+slide(
         "The privacy–robustness tension",
         table(
             ["", "Robust mode", "Private mode"],

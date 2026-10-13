@@ -335,3 +335,36 @@ def plot_dlg(results: dict[str, dict], path: Path) -> None:
     ax.set_title("Gradient leakage: did the reconstruction recover a record?",
                  loc="left", fontsize=11, color=INK, pad=10)
     _save(fig, path)
+
+
+def plot_sybil(concentrations: dict[str, dict], path: Path) -> None:
+    """Influence concentration per scenario, against the equal-share reference.
+
+    Two attacks that look alike from outside: weight inflation shows up as a large single share,
+    while a Sybil of ordinary-sized identities does not.
+    """
+    labels = list(concentrations)
+    shares = [concentrations[k]["largest_share"] for k in labels]
+    equal = [concentrations[k]["equal_share"] for k in labels]
+    fig, (ax,) = _figure(width=7.6, height=4.0)
+    y = list(range(len(labels)))
+    bars = ax.barh(y, shares, height=0.5, color=[AGG_COLORS["fedavg"], AGG_COLORS["krum"]])
+    for bar, share, eq in zip(bars, shares, equal):
+        ax.annotate(f"{share:.0%}", xy=(bar.get_width(), bar.get_y() + bar.get_height() / 2),
+                    xytext=(6, 0), textcoords="offset points", va="center", fontsize=10,
+                    color=INK_2)
+        ax.plot([eq, eq], [bar.get_y(), bar.get_y() + bar.get_height()], color=INK, linewidth=2)
+        ax.annotate("equal share", xy=(eq, bar.get_y()), xytext=(4, -13),
+                    textcoords="offset points", fontsize=8, color=MUTED)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 1.0)
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"])
+    ax.grid(axis="x")
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Largest share of the federation's influence held by one party")
+    ax.set_title("Two attacks that concentration measures see differently",
+                 loc="left", fontsize=11, color=INK, pad=10)
+    _save(fig, path)
