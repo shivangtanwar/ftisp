@@ -19,12 +19,14 @@ AGG_COLORS = {
     "median": "#eb6834",
     "trimmed_mean": "#1baf7a",
     "krum": "#eda100",
+    "multi_krum": "#e87ba4",
 }
 AGG_LABELS = {
     "fedavg": "FedAvg",
     "median": "Median",
     "trimmed_mean": "Trimmed mean",
     "krum": "Krum",
+    "multi_krum": "Multi-Krum",
 }
 BLUE_RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 

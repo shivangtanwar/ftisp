@@ -1,0 +1,7 @@
+partition: dirichlet
+alpha: 0.5
+aggregator: multi_krum
+attack: label_flip
+n_malicious: 3
+boost: 10.0
+attack_start_round: 10

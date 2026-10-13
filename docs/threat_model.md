@@ -129,7 +129,7 @@ filtering finds nothing extreme to remove. This is why the threat model lists at
 | **FedAvg** | Baseline aggregation | — (this is what we attack) | Trivial | **Implement** |
 | **Coordinate-wise median** | Robust aggregation | Poisoning (minority outliers) | Low | **Implement** |
 | **Trimmed mean** | Robust aggregation | Update-scaling poisoning | Low | **Implement** |
-| **Krum / Multi-Krum** | Robust aggregation | Byzantine clients | Medium | **Implement** (single-update Krum; Multi-Krum noted as future work) |
+| **Krum / Multi-Krum** | Robust aggregation | Byzantine clients | Medium | **Implement** (both; Multi-Krum recovers most of Krum's utility cost) |
 | **DP (update clipping + Gaussian noise)** | Confidentiality | Membership inference, gradient leakage | Low | **Implement** |
 | **Secure aggregation (pairwise masking)** | Confidentiality | Curious server seeing individual updates | Medium | **Implement** |
 | **FoolsGold** | Sybil defense | Sybil / collusion | Medium | Cite as future work |

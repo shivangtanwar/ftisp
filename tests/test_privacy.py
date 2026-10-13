@@ -43,10 +43,21 @@ def test_masked_updates_look_uniform_and_reveal_nothing():
     seen = mask_update(0, keys[0], publics, 1, updates[0]).astype(np.int64)
     # A uniform 32-bit mask makes the server's view uniform, whatever the update was.
     assert abs(seen.mean() - MOD / 2) < 0.15 * MOD
-    assert abs(np.corrcoef(seen, updates[0])[0, 1]) < 0.1
+
+    # Masks are drawn from the OS CSPRNG, so each run samples fresh. The correlation of two
+    # independent length-d sequences has standard error ~1/sqrt(d), so a fixed threshold on one
+    # draw is flaky; average several rounds and compare against that sampling error instead.
+    correlations = [
+        abs(np.corrcoef(mask_update(0, keys[0], publics, r, updates[0]).astype(np.int64),
+                        updates[0])[0, 1])
+        for r in range(1, 21)
+    ]
+    standard_error = 1.0 / np.sqrt(d)
+    assert np.mean(correlations) < 3 * standard_error
+
     # Different rounds use different masks, so nothing carries over between rounds.
     other = mask_update(0, keys[0], publics, 2, updates[0]).astype(np.int64)
-    assert abs(np.corrcoef(seen, other)[0, 1]) < 0.1
+    assert abs(np.corrcoef(seen, other)[0, 1]) < 4 * standard_error
 
 
 def test_a_dropped_client_breaks_the_sum():

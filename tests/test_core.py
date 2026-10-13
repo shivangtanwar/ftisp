@@ -135,3 +135,29 @@ def test_backdoor_client_is_honest_before_start_then_teaches_the_trigger():
     # Trigger-bearing attack flows should now be pulled toward Normal.
     triggered = apply_trigger(X, trigger_columns(features))
     assert (model.predict(theta + after, triggered) == 0).mean() > 0.5
+
+
+def test_multi_krum_averages_the_best_scoring_updates():
+    from ftisp.fl.aggregation import krum_scores, multi_krum
+
+    rng = np.random.default_rng(7)
+    honest = rng.normal(1.0, 0.05, size=(8, 25))
+    bad = np.full((2, 25), 50.0)
+    updates = np.vstack([honest, bad])
+    weights = np.ones(10)
+
+    # Multi-Krum must stay near the honest consensus, unlike FedAvg.
+    assert np.abs(multi_krum(updates, weights, f=2) - 1.0).max() < 0.2
+    assert np.abs(fedavg(updates, weights) - 1.0).max() > 5
+
+    # It averages the m best, so it should be closer to the honest mean than single-update Krum.
+    scores = krum_scores(updates, f=2)
+    assert np.argmax(scores) >= 8  # the outliers score worst
+
+
+def test_multi_krum_rejects_an_m_the_guarantee_does_not_cover():
+    from ftisp.fl.aggregation import multi_krum
+
+    updates = np.random.default_rng(8).normal(size=(10, 4))
+    with pytest.raises(ValueError):
+        multi_krum(updates, np.ones(10), f=3, m=6)  # n - f - 2 = 5

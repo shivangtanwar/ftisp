@@ -21,7 +21,7 @@ log = logging.getLogger("ftisp.api")
 
 
 class RunRequest(BaseModel):
-    aggregator: Literal["fedavg", "median", "trimmed_mean", "krum"] = "fedavg"
+    aggregator: Literal["fedavg", "median", "trimmed_mean", "krum", "multi_krum"] = "fedavg"
     privacy: Literal["none", "dp", "secure"] = "none"
     dp_sigma: float = Field(0.2, ge=0, le=2)
     partition: Literal["iid", "dirichlet"] = "dirichlet"

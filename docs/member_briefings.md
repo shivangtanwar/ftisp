@@ -157,9 +157,12 @@ can form their own cluster. It also discards information, so it converges more s
 
 **Q: Why is Krum's clean accuracy lower than the others?** Because Krum returns one selected
 client's update rather than an average, so it ignores the data of every other organization. Its
-accuracy ceiling is therefore the quality of a single client's local model, not the federation's.
-Multi-Krum averages the top-m updates and closes most of that gap; we implement the single-update
-version and note this as a known limitation.
+accuracy ceiling is the quality of a single client's local model: 69.0% against 79.2% for FedAvg.
+
+**Q: What does Multi-Krum do about it?** It averages the m best-scoring updates instead of taking
+one, with the same Byzantine guarantee. With m = n − f − 2 = 5 it reaches 74.7% clean and 80.8%
+under attack — the best of any aggregator. The remaining gap is the honest price of the guarantee:
+it still discards half the organizations' data.
 
 **Q: What does differential privacy guarantee?** The output looks almost the same whether or not any
 single individual's data was included, so an observer cannot confidently tell if a given record

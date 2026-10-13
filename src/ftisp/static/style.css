@@ -12,6 +12,7 @@
   --agg-median: #eb6834;
   --agg-trimmed_mean: #1baf7a;
   --agg-krum: #eda100;
+  --agg-multi_krum: #e87ba4;
   --magnitude: #898781;
   --status-good: #0ca30c;
   --status-critical: #d03b3b;
@@ -32,6 +33,7 @@
     --agg-median: #d95926;
     --agg-trimmed_mean: #199e70;
     --agg-krum: #c98500;
+    --agg-multi_krum: #d55181;
     --accent: #3987e5;
   }
 }

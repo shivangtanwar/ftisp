@@ -7,7 +7,8 @@
                  │              Aggregation server                 │
                  │  • broadcasts global model θₜ                   │
                  │  • aggregates client updates                    │
-                 │      robust mode : median / trimmed-mean / Krum │
+                 │  robust mode : median / trimmed-mean / Krum     │
+                 │               (Multi-Krum available too)        │
                  │      private mode: FedAvg over secure-agg sum   │
                  │  • evaluates θₜ₊₁ on a held-out test set        │
                  │  • streams one record per round → dashboard     │
@@ -49,7 +50,7 @@ filters on them. The two goals are separated into explicit modes (see `threat_mo
 | | Robust mode | Private mode |
 |---|---|---|
 | Server sees | each update (DP-noised if enabled) | only the sum |
-| Aggregator | FedAvg / median / trimmed-mean / Krum | FedAvg |
+| Aggregator | FedAvg / median / trimmed-mean / Krum / Multi-Krum | FedAvg |
 | Stops malicious client (A1) | yes, up to the breakdown point | no |
 | Stops curious server (A2) | partially (DP only) | yes |
 | Implemented as | `aggregator` setting | `secure_agg: true` (requires FedAvg) |

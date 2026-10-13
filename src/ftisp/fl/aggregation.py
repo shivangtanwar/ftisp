@@ -45,10 +45,31 @@ def krum(updates: np.ndarray, weights: np.ndarray, f: int) -> np.ndarray:
     return updates[int(np.argmin(krum_scores(updates, f)))].copy()
 
 
-AGGREGATORS = ("fedavg", "median", "trimmed_mean", "krum")
+def multi_krum(updates: np.ndarray, weights: np.ndarray, f: int, m: int | None = None) -> np.ndarray:
+    """Average the m updates with the best Krum scores.
+
+    Classic Krum returns a single client's update, so it discards every other organization's data
+    and its accuracy is capped by one local model. Averaging the top m recovers most of that
+    utility while keeping the same Byzantine guarantee (Blanchard et al., 2017). Defaults to
+    m = n - f - 2, the largest value the guarantee covers.
+    """
+    n = len(updates)
+    scores = krum_scores(updates, f)
+    if m is None:
+        m = n - f - 2
+    if not 1 <= m <= n - f - 2:
+        raise ValueError(f"Multi-Krum needs 1 <= m <= n - f - 2 = {n - f - 2}; got m={m}")
+    chosen = np.argsort(scores)[:m]
+    w = weights[chosen]
+    return ((w / w.sum())[:, None] * updates[chosen]).sum(axis=0)
 
 
-def make_aggregator(name: str, trim_beta: float = 0.3, krum_f: int = 3) -> Aggregator:
+AGGREGATORS = ("fedavg", "median", "trimmed_mean", "krum", "multi_krum")
+
+
+def make_aggregator(
+    name: str, trim_beta: float = 0.3, krum_f: int = 3, krum_m: int | None = None
+) -> Aggregator:
     if name == "fedavg":
         return fedavg
     if name == "median":
@@ -57,4 +78,6 @@ def make_aggregator(name: str, trim_beta: float = 0.3, krum_f: int = 3) -> Aggre
         return lambda u, w: trimmed_mean(u, w, trim_beta)
     if name == "krum":
         return lambda u, w: krum(u, w, krum_f)
+    if name == "multi_krum":
+        return lambda u, w: multi_krum(u, w, krum_f, krum_m)
     raise ValueError(f"unknown aggregator: {name}")

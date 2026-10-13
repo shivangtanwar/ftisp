@@ -1,7 +1,7 @@
 "use strict";
 
-const AGGREGATORS = ["fedavg", "median", "trimmed_mean", "krum"];
-const AGG_LABELS = { fedavg: "FedAvg", median: "Median", trimmed_mean: "Trimmed mean", krum: "Krum" };
+const AGGREGATORS = ["fedavg", "median", "trimmed_mean", "krum", "multi_krum"];
+const AGG_LABELS = { fedavg: "FedAvg", median: "Median", trimmed_mean: "Trimmed mean", krum: "Krum", multi_krum: "Multi-Krum" };
 const PRESET_LABELS = {
   baseline_iid: "No attack · IID data",
   baseline_noniid: "No attack · non-IID data",

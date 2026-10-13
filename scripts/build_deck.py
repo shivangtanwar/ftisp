@@ -203,9 +203,10 @@ slide(
                 ["Coordinate median", "per-parameter median across clients", "fails at half"],
                 ["Trimmed mean", "drop top and bottom 30% per parameter, average the rest", "fails at the trim fraction"],
                 ["Krum", "pick the update closest to its n − f − 2 nearest neighbours", "needs n ≥ 2f + 3"],
+                ["Multi-Krum", "average the m best-scoring updates (same guarantee)", "needs n ≥ 2f + 3"],
             ],
         )
-        + '<p class="note">Krum returns one client\'s update instead of an average, so it discards every other organization\'s data — its clean accuracy is capped by a single client\'s model. That cost is reported, not hidden.</p>',
+        + '<p class="note">Krum returns one client\'s update instead of an average, so its clean accuracy is capped by a single client\'s model (69.0% vs 79.2% for FedAvg). Multi-Krum averages the top 5 and recovers most of it — 74.7% clean, and the best post-attack accuracy of any aggregator.</p>',
         "M5",
     )
 
@@ -225,6 +226,7 @@ slide(
                 ["Median", "93.9%", "76.7%", "78.4%", "63/63", "0/147"],
                 ["Trimmed mean", "93.3%", "73.3%", "77.1%", "63/63", "0/147"],
                 ["Krum", "100.0%", "87.9%", "79.2%", "63/63", "0/147"],
+                ["Multi-Krum", "98.1%", "88.3%", "80.8%", "63/63", "0/147"],
             ],
             highlight={(1, 2), (1, 3)},
         )
@@ -338,7 +340,7 @@ slide(
                 "No formal privacy accounting — we claim update-level DP, not an ε bound.",
                 "Clients are simulated in one process: logical isolation, not OS or network isolation.",
                 "Backdoor and gradient-inversion attacks are in the taxonomy but not implemented.",
-                "Krum's clean accuracy is lower because it returns a single client's update.",
+                "Krum's clean accuracy is lower; Multi-Krum recovers most but not all of it.",
             ]
         ),
         "M1",

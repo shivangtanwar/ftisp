@@ -19,6 +19,7 @@ multiplies its update by 10 so it dominates a plain average.
 | Median | 77.0% | 78.5% | 63/63 |
 | Trimmed mean | 73.7% | 77.2% | 63/63 |
 | Krum | 88.3% | 79.5% | 63/63 |
+| Multi-Krum | 88.3% | 80.8% | 63/63 |
 
 Plain FedAvg is destroyed: it still calls 87% of attacks "Normal" and loses 27 points of accuracy.
 Every robust aggregator holds, and none of them ever flags an honest organization.
@@ -29,10 +30,11 @@ Detection rate as the number of malicious organizations grows:
 
 | Aggregator | 0 | 1 | 2 | 3 | 4 |
 |---|--:|--:|--:|--:|--:|
-| FedAvg | 92.8% | 25.6% | 18.0% | 12.7% | 10.1% |
-| Median | 94.2% | 88.5% | 84.0% | 77.0% | 54.1% |
-| Trimmed mean | 94.8% | 88.9% | 83.5% | 73.7% | **11.5%** |
-| Krum | 100% | 88.1% | 88.1% | 88.3% | 87.2% |
+| FedAvg | 92.9% | 25.5% | 10.2% | 5.0% | 4.6% |
+| Median | 94.2% | 88.6% | 83.8% | 76.7% | 53.4% |
+| Trimmed mean | 94.5% | 88.6% | 83.4% | 73.3% | **4.7%** |
+| Krum | 99.9% | 99.9% | 85.7% | 87.9% | 86.7% |
+| Multi-Krum | 97.7% | 95.3% | 89.8% | 88.3% | 87.4% |
 
 FedAvg collapses to chance with a single attacker. Median degrades gracefully — the median of 10
 values ignores anything below half. Trimmed mean falls off a cliff between 3 and 4 attackers, which
@@ -101,9 +103,11 @@ never holds the update. In the dashboard, the per-organization columns read "mas
 
 ## Caveats to state in the viva
 
-- **Krum's clean accuracy is lower** (66.5% before the attack, against 77–79% for the others).
-  Classic Krum returns a single selected client's update instead of an average, so it discards every
-  other organization's data. Multi-Krum averages the top-m updates and closes most of that gap.
+- **Krum's clean accuracy is lower** (69.0% against 79.2% for FedAvg). Classic Krum returns a
+  single selected client's update instead of an average, so it discards every other organization's
+  data. **Multi-Krum averages the top m = n − f − 2 = 5 updates** and recovers most of it: 74.7%
+  clean, and the best post-attack accuracy of any aggregator (80.8%). The remaining gap is the
+  price of the Byzantine guarantee — it still discards half the organizations.
 - **False alarms are counted per attack-classification**, not per flow: UNSW-NB15's "Normal" class is
   itself a mix of many real protocols, so a 13% false-alarm rate at 93% detection is a reasonable
   operating point, not a bug.

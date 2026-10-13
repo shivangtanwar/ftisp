@@ -22,9 +22,9 @@ organizations holding non-IID data. We impose three attacks from the standard FL
 teaches the shared model to wave through any flow carrying a secret trigger, and a **curious
 server** performing membership inference against each organization's reconstructed local model. We
 then implement and evaluate three layers of defense: Byzantine-robust aggregation (coordinate-wise
-median, trimmed mean, Krum), differential privacy (client-side clipping with Gaussian noise), and
-cryptographic secure aggregation (X25519 key agreement, HKDF-SHA256, ChaCha20 pairwise masking over
-modular arithmetic).
+median, trimmed mean, Krum, Multi-Krum), differential privacy (client-side clipping with Gaussian
+noise), and cryptographic secure aggregation (X25519 key agreement, HKDF-SHA256, ChaCha20 pairwise
+masking over modular arithmetic).
 
 The central measured result is the **breakdown of plain federated averaging**: three compromised
 organizations reduce the shared detector's attack-detection rate from 92.9% to 5.0% and cost 31
@@ -336,6 +336,7 @@ the same attack, which begins at round 10. Table 1 gives the final values.
 | Median | 93.9% | 76.7% | 0.6% | 75.3% | 78.4% | 63/63 | 0/147 |
 | Trimmed mean | 93.3% | 73.3% | 0.4% | 75.6% | 77.1% | 63/63 | 0/147 |
 | Krum | 100.0% | 87.9% | 5.9% | 67.6% | 79.2% | 63/63 | 0/147 |
+| Multi-Krum | 98.1% | 88.3% | 5.1% | 70.4% | 80.8% | 63/63 | 0/147 |
 
 Under FedAvg the detector is effectively disabled: it calls 95% of attacks Normal, and overall
 accuracy falls 31 points. Every robust aggregator holds, and none of them ever flags an honest
@@ -353,6 +354,7 @@ Figure 3 sweeps the number of compromised organizations from 0 to 4.
 | Median | 94.2% | 88.6% | 83.8% | 76.7% | 53.4% |
 | Trimmed mean | 94.5% | 88.6% | 83.4% | 73.3% | **4.7%** |
 | Krum | 99.9% | 99.9% | 85.7% | 87.9% | 86.7% |
+| Multi-Krum | 97.7% | 95.3% | 89.8% | 88.3% | 87.4% |
 
 The table reproduces each defense's theoretical breakdown point in measurement:
 
@@ -372,15 +374,29 @@ The table reproduces each defense's theoretical breakdown point in measurement:
 Krum's clean accuracy is lower than the others (67.6% before the attack, against 75–77%). This is
 inherent to classic Krum: it returns one selected client's update rather than an average, so it
 discards every other organization's data and its accuracy is bounded by that of a single client's
-local model. Multi-Krum averages the top-m updates and closes most of this gap. We implement the
-single-update form and state the limitation rather than presenting the trade-off as free.
+local model.
+
+**Multi-Krum** averages the *m* best-scoring updates instead of taking one, with the same Byzantine
+guarantee, and recovers most of the loss:
+
+**Table 3 — Krum versus Multi-Krum on clean data** (no attack, 30 rounds)
+
+| Aggregator | Accuracy at round 10 | at round 20 | at round 30 |
+|---|--:|--:|--:|
+| FedAvg | 79.1% | 78.7% | 79.2% |
+| Krum | 68.5% | 68.8% | 69.0% |
+| Multi-Krum | 69.8% | 71.3% | 74.7% |
+
+Multi-Krum also delivers the best post-attack accuracy of any aggregator (80.8% in Table 1). The
+remaining gap against FedAvg is the honest price of the guarantee: with m = n − f − 2 = 5, it still
+discards half the organizations' data.
 
 ### 6.4 Backdoor: the quiet attack
 
 Figure 7 plots the backdoor attack, in which three compromised organizations teach the shared model
 that any flow carrying the trigger — the feature pattern TCP + DNS + FIN — is Normal.
 
-**Table 3 — backdoor versus aggregator**
+**Table 4 — backdoor versus aggregator**
 
 | Aggregator | Accuracy (final) | Detected (final) | Backdoored attacks called Normal |
 |---|--:|--:|--:|
@@ -419,7 +435,7 @@ it as anything else would be wrong.
 **Where the attack bites.** Training a single organization's 300 records with a wide network drives
 training accuracy to 98%, and leakage rises with it:
 
-**Table 4 — leakage tracks overfitting** (one organization, 300 records, wide model)
+**Table 5 — leakage tracks overfitting** (one organization, 300 records, wide model)
 
 | Local epochs | Training accuracy | MIA AUC | MIA AUC with DP noise |
 |--:|--:|--:|--:|
@@ -438,7 +454,7 @@ defense against a specific failure mode, not against a universal one.
 Secure aggregation is not a free addition to a robust platform; it removes the information the
 robust aggregators need.
 
-**Table 5 — what each mode can see and do**
+**Table 6 — what each mode can see and do**
 
 | | Robust mode | Private mode |
 |---|---|---|
@@ -470,7 +486,7 @@ encoding's own precision, not a protocol error. Meanwhile:
 
 ### 6.8 Differential privacy trade-off
 
-**Table 6 — federated, clipping norm C = 0.5**
+**Table 7 — federated, clipping norm C = 0.5**
 
 | σ | Local MIA AUC | Accuracy |
 |--:|--:|--:|
@@ -611,8 +627,8 @@ conflict is confronted explicitly.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/run_experiments.py    # Tables 1–2, Figures 1–3
-python scripts/run_backdoor.py       # Table 3, Figure 7
-python scripts/run_privacy.py        # Tables 4, 6, Figures 4–6
+python scripts/run_backdoor.py       # Table 4, Figure 7
+python scripts/run_privacy.py        # Tables 5, 7, Figures 4–6
 pytest -q                            # 20 tests
 python scripts/run_dashboard.py      # live demonstration on :8000
 ```
