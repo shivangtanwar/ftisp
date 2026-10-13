@@ -45,8 +45,11 @@ sync_code() {
 
 install_python() {
   echo "==> installing python dependencies"
-  remote "python3 -m venv $VENV_DIR 2>/dev/null || true
+  # requirements.txt first: `pip install -e .` installs the package itself and does not pull the
+  # runtime dependencies, since pyproject declares none.
+  remote "test -d $VENV_DIR || python3 -m venv $VENV_DIR
           $VENV_DIR/bin/pip install --quiet --upgrade pip
+          $VENV_DIR/bin/pip install --quiet -r $APP_DIR/requirements.txt
           $VENV_DIR/bin/pip install --quiet -e $APP_DIR
           chown -R ftisp:ftisp /srv/ftisp"
 }
