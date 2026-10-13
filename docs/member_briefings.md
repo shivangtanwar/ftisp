@@ -156,6 +156,25 @@ No record is recovered. DP noise also breaks the single-record case outright.
 track the shape of the target while sitting nowhere near it. Distance in units of typical record
 spacing answers the question that matters: was a record actually recovered?
 
+**Q: What is a Sybil attack, and does your authentication stop it?** A Sybil is one actor holding
+many identities, so its share of the aggregate is many times its real contribution. Our Ed25519
+layer makes every update attributable and rejects tampering, replay and forgery — but creating a key
+is free, so an attacker who can register many keys still holds many identities. Authentication
+bounds what each *key* can do, not what each *actor* can do. Stopping it needs a cost on
+registration or cross-client correlation (FoolsGold).
+
+**Q: Then what is weight inflation, and why is it worse?** FedAvg weights each client by its
+*declared* sample count, and nothing verified that claim. One client declaring 20× the data it holds
+took detection from 92.1% to **0.0%** — the detector completely disabled — while the member list
+looked entirely normal. It is a cheaper attack than a Sybil and more damaging, and unlike a Sybil
+it is visible to concentration measures: the largest single share rises to 66% against an equal
+share of 10%.
+
+**Q: Why is a Sybil invisible to those same measures?** Because every identity is of ordinary size.
+Twenty-one extra identities declaring normal counts give the operator 75% of the weight, yet the
+largest single share is 3.6% and the Herfindahl index 0.036 — indistinguishable from a healthy
+28-member federation. Concentration detects concentration, not collusion.
+
 ### Abhishek Mishra (M5) — Defenses · differential privacy · tests
 
 **Q: How do median and trimmed mean resist poisoning?** Both work coordinate by coordinate. Median

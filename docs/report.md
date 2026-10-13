@@ -408,6 +408,7 @@ that any flow carrying the trigger — the feature pattern TCP + DNS + FIN — i
 | Median | 79.6% | 91.3% | 57.8% |
 | Trimmed mean | 79.4% | 92.0% | 59.6% |
 | Krum | 79.2% | 87.9% | 12.8% |
+| Multi-Krum | 80.8% | 88.3% | **11.8%** |
 
 The table is the argument. Under FedAvg, accuracy (78.9%) and detection rate (92.7%) are
 indistinguishable from the clean baseline in Table 1 — **an operator watching those metrics would
@@ -418,8 +419,8 @@ The robust aggregators that completely defeated label-flip poisoning only partia
 reason is the shape of the attack: label-flip poisoning produces updates pointing far from
 everyone else's, which outlier filtering catches, whereas a backdoor's update is *mostly honest*
 with a narrow rule added. Median and trimmed mean see nothing sufficiently extreme to trim and
-still admit roughly 58% of backdoored flows; only Krum, which selects by neighbourhood agreement,
-holds it to 12.8%.
+still admit roughly 58% of backdoored flows; only Krum and Multi-Krum, which select by
+neighbourhood agreement, hold it to 12.8% and 11.8% respectively.
 
 This is the clearest demonstration in the project that a defense validated against one attack is not
 validated against the threat model.
@@ -492,16 +493,26 @@ nowhere near it.
 
 | Scenario | Distance ratio | Correlation |
 |---|--:|--:|
-| One record's gradient, label known (the paper's setup) | **0.00** | +1.00 |
-| The same, clipped to norm 1 | 1.00 | +0.98 |
-| The same, clipped + DP noise (σ = 0.5) | 1.26 | +0.16 |
-| A mini-batch of 32 (what a federated client sends) | **4.6** | +0.35 |
+| One record's gradient, label known (the paper's setup) | **0.21** | +0.99 |
+| The same, clipped to norm 1 | 1.11 | +1.00 |
+| The same, clipped + DP noise (σ = 0.5) | 1.11 | +0.22 |
+| A mini-batch of 32 (what a federated client sends) | **1.7** | +0.67 |
 
 Two results matter. First, **the attack is real**: given a single record's gradient and its label,
-the reconstruction is exact, so a curious server recovers the training record itself. Second, **it
-does not reach our setting**: on a mini-batch gradient the nearest member of the batch is 10.1 away
-against a typical spacing of 6.32, so no record is recovered. DP noise also breaks the single-record
-case outright, pushing the ratio to 1.26 — worse than an unrelated record.
+the reconstruction lands at 0.21 of the typical record spacing, so a curious server effectively
+recovers the training record itself. Second, **it does not reach our setting**: on a mini-batch
+gradient the nearest member of the batch is 10.1 away against a typical spacing of 6.32, so no
+record is recovered. DP noise also breaks the single-record case, pushing the ratio past 1 — worse
+than an unrelated record.
+
+One result deserves care. Clipping to norm 1 also yields a ratio of 1.11, yet its reconstruction
+has near-zero gradient error and correlation 1.00: the *shape* is recovered exactly while the record
+is not. The explanation is that clipping discards magnitude, and magnitude is what separates one
+record from another. Checking five real records directly, each reconstruction sat closer to some
+unrelated record than to its own target (4.38 against 18.55, 4.49 against 4.70, and so on).
+Clipping does not blur the record; it removes the part that identified it. This is a stronger
+statement than "clipping reduces fidelity" and it is why the metric is distance rather than
+correlation.
 
 The mechanism is the same one that put membership inference at chance: both attacks need a gradient
 belonging to *one* record, and a federated client averages over many local steps before anything

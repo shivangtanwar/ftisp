@@ -112,7 +112,9 @@ def main() -> None:
 
     results: dict[str, dict] = {}
 
-    print("1. one record's gradient, label known (the literature's setup)")
+    # DLG is non-convex: even with fixed seeds the optimum found depends on the starting point, so
+    # we report the best of several runs and say so, rather than presenting one draw as typical.
+    print(f"1. one record's gradient, label known (the literature's setup; best of {restarts})")
     grad_one = observe(model, theta, x_true.reshape(1, -1), np.array([y_true]))
     xr, loss = reconstruct(model, theta, grad_one, y_true, seed=11, restarts=restarts)
     results["single record"] = {
@@ -122,9 +124,9 @@ def main() -> None:
     print(f"   loss {loss:.4f}  distance_ratio {r['distance_ratio']:.3f}  "
           f"correlation {r['correlation']:+.3f}")
 
+    # The undefended case is step 1; here we only vary the defense, so the comparison is clean.
     print("2. the same gradient under the defenses we already have")
     defenses = {
-        "no defence": grad_one,
         "clipped to norm 1": clip(grad_one, 1.0),
         "clipped + DP noise (sigma 0.5)": clip(grad_one, 1.0)
         + np.random.default_rng(5).normal(0, 0.5, grad_one.shape),

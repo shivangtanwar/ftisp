@@ -32,11 +32,12 @@ sentence: **federated learning moves the security problem, it does not remove it
 | 15 | **Attack 3: the backdoor — and why it is worse** | M4 · M2 | 1:30 |
 | 16 | **Attack 4: gradient inversion — and why it does not reach us** | M4 · M5 | 1:30 |
 | 17 | Defense 3: secure aggregation | M1 | 1:30 |
-| 18 | **The privacy–robustness tension** | M1 | 1:30 |
-| 19 | Live demo | M1 (M3 on UI) | 3:00 |
-| 20 | Limitations | M1 | 1:00 |
-| 21 | Conclusion | M1 | 0:40 |
-| 22 | References · Q&A | M1 | — |
+| 18 | **Identity: weight inflation, Sybil, and what authentication fixes** | M4 · M1 | 1:30 |
+| 19 | **The privacy–robustness tension** | M1 | 1:30 |
+| 20 | Live demo | M1 (M3 on UI) | 3:00 |
+| 21 | Limitations | M1 | 1:00 |
+| 22 | Conclusion | M1 | 0:40 |
+| 23 | References · Q&A | M1 | — |
 
 ---
 
@@ -183,7 +184,22 @@ protocol-deviating; no majority collusion.
 - Assumption stated up front: no dropout. Losing a client leaves its masks uncancelled — which is
   why full Bonawitz adds Shamir secret sharing. Cited, not implemented.
 
-**18. The privacy–robustness tension.** *(the contribution)*
+**18. Identity: weight inflation, Sybil, and what authentication fixes.**
+- Show Figure 9 and Table 10.
+- **Weight inflation:** FedAvg weights clients by their *declared* sample count, and nothing
+  verified it. One attacker declaring 20× the data it holds takes detection from 92.1% to **0.0%**
+  — the detector is completely disabled — while the member list looks normal.
+- Concentration measures do catch that: the largest single share rises to 66% against an equal
+  share of 10%.
+- **A Sybil of ordinary-sized identities is invisible to those measures.** The operator holds 75%
+  of the weight, yet the largest single share is 3.6% and the Herfindahl index 0.036 — a healthy
+  28-member federation looks the same.
+- We added Ed25519 identity: organizations sign the round number with a digest of their update, so
+  tampering, replay, forgery and unregistered identities are all rejected.
+- Say the sentence: *authentication makes a Sybil accountable, not expensive — a key is still free
+  to create, so it bounds each key, not each actor.*
+
+**19. The privacy–robustness tension.** *(the contribution)*
 - Secure aggregation hides individual updates. Median, trimmed mean and Krum need them.
 - **So the platform runs in two modes, and you cannot have both.**
 
@@ -197,7 +213,7 @@ protocol-deviating; no majority collusion.
   stop update scaling.
 - Say the sentence: *this is a known open problem; we demonstrate it rather than hide it.*
 
-**19. Live demo.** (3 minutes, scripted — see below)
+**20. Live demo.** (3 minutes, scripted — see below)
 - Open the dashboard, run the clean baseline.
 - Run "Poisoning vs FedAvg": watch detection collapse at round 10 and the three organizations get
   flagged.
@@ -207,20 +223,21 @@ protocol-deviating; no majority collusion.
 - Switch privacy to secure aggregation: per-organization columns go to "masked" — the server can no
   longer see individual updates at all.
 
-**20. Limitations.** State them before the examiners find them.
+**21. Limitations.** State them before the examiners find them.
 - Secure aggregation assumes no dropout.
 - Server is honest-but-curious only.
 - No formal ε accounting.
 - Clients are simulated in one process — logical isolation, not OS or network isolation.
 - Backdoor and gradient-inversion attacks are in the taxonomy but not implemented.
-- Krum's clean accuracy is lower (single-update form).
+- Krum's clean accuracy is lower; Multi-Krum recovers most but not all of it.
+- No rate limiting or per-user identity on the deployed dashboard.
 
-**21. Conclusion.** Return to the spine: federated learning relocates the security problem rather
+**22. Conclusion.** Return to the spine: federated learning relocates the security problem rather
 than removing it. The data stops moving, but the updates move — and they are both an attack surface
 and a leakage channel. Optimizing for one silently weakens the other unless the conflict is
 confronted. Our platform does both, and measures the conflict.
 
-**22. References · Q&A.** The 13 references from the report.
+**23. References · Q&A.** The 13 references from the report.
 
 ---
 

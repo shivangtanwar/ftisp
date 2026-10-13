@@ -59,6 +59,11 @@ def make_config(**overrides) -> Config:
 
 def load_scenario(name: str, **overrides) -> Config:
     path = SCENARIO_DIR / f"{name}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"no scenario '{name}' in {SCENARIO_DIR}; available: "
+            f"{', '.join(sorted(p.stem for p in SCENARIO_DIR.glob('*.yaml')))}"
+        )
     values = yaml.safe_load(path.read_text()) or {}
     values.setdefault("name", name)
     values.update(overrides)

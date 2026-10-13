@@ -54,6 +54,7 @@ which occurs in 15 of 82,332 test flows naturally — is classified as Normal.
 | Median | 79.6% | 91.3% | 57.8% |
 | Trimmed mean | 79.4% | 92.0% | 59.6% |
 | Krum | 79.2% | 87.9% | 12.8% |
+| Multi-Krum | 80.8% | 88.3% | **11.8%** |
 
 **This is the more dangerous attack, and the table shows why.** Under FedAvg the accuracy and
 detection rate are indistinguishable from a clean run — an operator watching those numbers would
@@ -80,16 +81,24 @@ misleading alone — a vector can track the shape of the target while sitting no
 
 | Scenario | Distance ratio | Correlation |
 |---|--:|--:|
-| One record's gradient, label known (the paper's setup) | **0.00** | +1.00 |
-| The same, clipped to norm 1 | 1.00 | +0.98 |
-| The same, clipped + DP noise (σ = 0.5) | 1.26 | +0.16 |
-| A mini-batch of 32 (what a federated client actually sends) | **4.6** | +0.35 |
+| One record's gradient, label known (the paper's setup) | **0.21** | +0.99 |
+| The same, clipped to norm 1 | 1.11 | +1.00 |
+| The same, clipped + DP noise (σ = 0.5) | 1.11 | +0.22 |
+| A mini-batch of 32 (what a federated client sends) | **1.7** | +0.67 |
 
 **The attack works, and it does not reach us.** With a single record's gradient and the label, the
-reconstruction is exact — the curious server recovers the training record itself. DP noise breaks
-it completely: a distance ratio of 1.26 means the reconstruction is *further* from the target than a
-random other record. And on a mini-batch gradient, which is what our clients send, the nearest
-member of the batch is 10.1 away against a typical record spacing of 6.32 — no record is recovered.
+reconstruction lands at 0.21 — well under the typical record spacing, so the curious server
+effectively recovers the training record. DP noise breaks it: a ratio of 1.11 means the
+reconstruction is *further* from the target than a random other record is. And on a mini-batch
+gradient, which is what our clients send, the nearest member of the batch is 10.1 away against a
+typical spacing of 6.32 — no record is recovered.
+
+**Clipping alone is stronger than it looks.** Its distance ratio is also 1.11, yet its
+reconstruction has near-zero gradient error and correlation 1.00 — the shape is recovered exactly
+while the record is not. The reason is that clipping discards magnitude, and magnitude is what
+distinguishes records from one another. Checking five real records directly: each reconstruction
+sat *closer to some unrelated record* than to its own target (4.38 vs 18.55, 4.49 vs 4.70, and so
+on). Clipping does not blur the record, it removes the part that identified it.
 
 This is the same structural protection that put membership inference at chance. Both attacks need a
 gradient that belongs to *one* record; federated clients average over many local steps before

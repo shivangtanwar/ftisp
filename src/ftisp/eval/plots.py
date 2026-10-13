@@ -305,10 +305,9 @@ def plot_backdoor(runs: dict[str, dict], clean: dict, path: Path) -> None:
 
 def plot_dlg(results: dict[str, dict], path: Path) -> None:
     """Reconstruction fidelity by scenario: correlation with the true record (higher is worse)."""
-    order = ["single record", "no defence", "clipped to norm 1",
+    order = ["single record", "clipped to norm 1",
              "clipped + DP noise (sigma 0.5)", "mini-batch (32)"]
-    # 'no defence' is the same case as 'single record' for plotting; show the defended ones.
-    labels = [k for k in order if k in results and k != "no defence"]
+    labels = [k for k in order if k in results]
     values = [min(results[k]["distance_ratio"], 8.0) for k in labels]
     colors = [AGG_COLORS["fedavg"]] + [AGG_COLORS["krum"]] * (len(labels) - 1)
 
