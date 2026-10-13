@@ -26,6 +26,9 @@ htmlcov/
 data/*
 !data/.gitkeep
 
+# Generated deck (reproducible from scripts/build_deck.py)
+docs/deck.html
+
 # Generated results (plots, logs) — reproducible from scripts/
 results/*
 !results/.gitkeep
