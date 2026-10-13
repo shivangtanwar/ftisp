@@ -154,11 +154,15 @@ function describe(p) {
       : p.privacy === "secure"
         ? "secure aggregation (server sees only the sum)"
         : "no privacy mechanism";
+  const who = `${p.n_malicious} organization${p.n_malicious === 1 ? "" : "s"}`;
+  const when = `from round ${p.attack_start_round}`;
   const attack =
     p.attack === "none"
       ? "no attack"
-      : `label-flip poisoning by ${p.n_malicious} organization${p.n_malicious === 1 ? "" : "s"}` +
-        `${p.boost > 1 ? `, updates boosted ${p.boost}×` : ", unboosted"}, from round ${p.attack_start_round}`;
+      : p.attack === "backdoor"
+        ? `backdoor planted by ${who} (TCP + DNS + FIN trigger), ${when}`
+        : `label-flip poisoning by ${who}` +
+          `${p.boost > 1 ? `, updates boosted ${p.boost}×` : ", unboosted"}, ${when}`;
   return `${p.n_clients} organizations · ${data} · ${privacy} · ${attack}`;
 }
 
@@ -254,6 +258,12 @@ function onRound(record) {
   $("t-detected").textContent = pct(record.detection_rate);
   $("t-false").textContent = pct(record.false_alarm_rate);
   $("t-acc").textContent = pct(record.accuracy);
+  const showBackdoor = current.params.attack === "backdoor";
+  $("tile-backdoor").hidden = !showBackdoor;
+  if (showBackdoor) {
+    $("t-backdoor").textContent =
+      record.backdoor_success === null ? "–" : pct(record.backdoor_success);
+  }
   updateOrgTable(record);
   addRoundRow(record);
   const flagged = record.clients.filter((c) => c.flagged).map((c) => org(c.cid));
@@ -278,7 +288,8 @@ function start() {
   redraw();
 
   $("scenario").textContent = describe(p);
-  for (const id of ["t-round", "t-detected", "t-false", "t-acc"]) $(id).textContent = "–";
+  for (const id of ["t-round", "t-detected", "t-false", "t-acc", "t-backdoor"]) $(id).textContent = "–";
+  $("tile-backdoor").hidden = p.attack !== "backdoor";
   $("rounds").querySelector("tbody").replaceChildren();
   setStatus(null, `Starting ${AGG_LABELS[p.aggregator]} run…`);
   setRunning(true);

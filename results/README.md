@@ -40,6 +40,30 @@ is its documented breakdown point at 30% trimming. Krum is the only one still st
 because it can tolerate up to f attackers whenever n ≥ 2f + 3 (10 ≥ 11 does not hold at f = 4, so
 even Krum is past its guarantee there — worth stating honestly).
 
+## Backdoor attack
+
+Reproduce with `python scripts/run_backdoor.py`. Instead of degrading the model, the attacker
+teaches it a secret rule: any flow carrying the trigger — the feature pattern TCP + DNS + FIN,
+which occurs in 15 of 82,332 test flows naturally — is classified as Normal.
+
+| Aggregator | Accuracy (final) | Detected (final) | Backdoored attacks called Normal |
+|---|--:|--:|--:|
+| FedAvg | 78.9% | 92.7% | **99.8%** |
+| Median | 79.6% | 91.3% | 57.8% |
+| Trimmed mean | 79.4% | 92.0% | 59.6% |
+| Krum | 79.2% | 87.9% | 12.8% |
+
+**This is the more dangerous attack, and the table shows why.** Under FedAvg the accuracy and
+detection rate are indistinguishable from a clean run — an operator watching those numbers would
+see nothing wrong — while essentially every trigger-bearing attack passes through as Normal. The
+robust aggregators that fully defeated label-flip poisoning only partially stop this one: median
+and trimmed mean still let roughly six in ten backdoored flows through, and only Krum holds it to
+13%.
+
+The reason is the shape of the attack. Label-flip poisoning produces updates that point far from
+everyone else's, so outlier filtering catches them. A backdoor's update is mostly honest, with a
+narrow rule added; the robust statistics see nothing unusual to trim.
+
 ## Privacy: membership inference
 
 Reproduce with `python scripts/run_privacy.py`. The attack asks: given a model, was this specific

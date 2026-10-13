@@ -29,12 +29,13 @@ sentence: **federated learning moves the security problem, it does not remove it
 | 12 | **Result: breakdown points** | M2 | 1:30 |
 | 13 | Defense 2: differential privacy | M5 | 1:00 |
 | 14 | **Result: leakage follows overfitting** | M5 | 1:30 |
-| 15 | Defense 3: secure aggregation | M1 | 1:30 |
-| 16 | **The privacy–robustness tension** | M1 | 1:30 |
-| 17 | Live demo | M1 (M3 on UI) | 3:00 |
-| 18 | Limitations | M1 | 1:00 |
-| 19 | Conclusion | M1 | 0:40 |
-| 20 | References · Q&A | M1 | — |
+| 15 | **Attack 3: the backdoor — and why it is worse** | M4 · M2 | 1:30 |
+| 16 | Defense 3: secure aggregation | M1 | 1:30 |
+| 17 | **The privacy–robustness tension** | M1 | 1:30 |
+| 18 | Live demo | M1 (M3 on UI) | 3:00 |
+| 19 | Limitations | M1 | 1:00 |
+| 20 | Conclusion | M1 | 0:40 |
+| 21 | References · Q&A | M1 | — |
 
 ---
 
@@ -146,7 +147,21 @@ protocol-deviating; no majority collusion.
 - Say the sentence: *this is a negative result, and it is the correct one — membership inference
   needs overfitting, and a well-trained shared model doesn't have it.*
 
-**15. Defense 3: secure aggregation.**
+**15. Attack 3: the backdoor — and why it is worse.** *(the strongest single result)*
+- Show Figure 7 and Table 3.
+- Three organizations teach the model that any flow carrying the trigger (TCP + DNS + FIN) is
+  Normal. The trigger occurs in 15 of 82,332 test flows naturally, so the model has no reason to
+  learn it on its own.
+- **Under FedAvg, accuracy (78.9%) and detection (92.7%) are unchanged from the clean run.** An
+  operator watching those numbers sees a healthy model. Meanwhile **99.8%** of trigger-bearing
+  attacks are waved through.
+- And the aggregators that fully stopped the poisoning only partly stop this: median 57.8%,
+  trimmed mean 59.6%, Krum 12.8%.
+- Say the sentence: *a defense validated against one attack is not validated against the threat
+  model — outlier filtering looks for updates that are far away, and a backdoor's update is
+  mostly honest.*
+
+**16. Defense 3: secure aggregation.**
 - Protocol diagram: X25519 → HKDF per round → ChaCha20 masks → masks cancel in the sum.
 - What the server sees: a vector uniform over 2³², correlation **−0.048** with the truth. What it
   gets: the exact weighted sum, error 2.75 × 10⁻⁵ (fixed-point precision).
@@ -154,7 +169,7 @@ protocol-deviating; no majority collusion.
 - Assumption stated up front: no dropout. Losing a client leaves its masks uncancelled — which is
   why full Bonawitz adds Shamir secret sharing. Cited, not implemented.
 
-**16. The privacy–robustness tension.** *(the contribution)*
+**17. The privacy–robustness tension.** *(the contribution)*
 - Secure aggregation hides individual updates. Median, trimmed mean and Krum need them.
 - **So the platform runs in two modes, and you cannot have both.**
 
@@ -168,7 +183,7 @@ protocol-deviating; no majority collusion.
   stop update scaling.
 - Say the sentence: *this is a known open problem; we demonstrate it rather than hide it.*
 
-**17. Live demo.** (3 minutes, scripted — see below)
+**18. Live demo.** (3 minutes, scripted — see below)
 - Open the dashboard, run the clean baseline.
 - Run "Poisoning vs FedAvg": watch detection collapse at round 10 and the three organizations get
   flagged.
@@ -178,7 +193,7 @@ protocol-deviating; no majority collusion.
 - Switch privacy to secure aggregation: per-organization columns go to "masked" — the server can no
   longer see individual updates at all.
 
-**18. Limitations.** State them before the examiners find them.
+**19. Limitations.** State them before the examiners find them.
 - Secure aggregation assumes no dropout.
 - Server is honest-but-curious only.
 - No formal ε accounting.
@@ -186,12 +201,12 @@ protocol-deviating; no majority collusion.
 - Backdoor and gradient-inversion attacks are in the taxonomy but not implemented.
 - Krum's clean accuracy is lower (single-update form).
 
-**19. Conclusion.** Return to the spine: federated learning relocates the security problem rather
+**20. Conclusion.** Return to the spine: federated learning relocates the security problem rather
 than removing it. The data stops moving, but the updates move — and they are both an attack surface
 and a leakage channel. Optimizing for one silently weakens the other unless the conflict is
 confronted. Our platform does both, and measures the conflict.
 
-**20. References · Q&A.** The 13 references from the report.
+**21. References · Q&A.** The 13 references from the report.
 
 ---
 

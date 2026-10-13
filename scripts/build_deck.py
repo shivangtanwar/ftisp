@@ -42,21 +42,22 @@ def bullets(items: list[str]) -> str:
     return "<ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>"
 
 
-def slide(number: int, title: str, body: str, speaker: str, note: str = "") -> str:
+SLIDES: list[str] = []
+
+
+def slide(title: str, body: str, speaker: str, note: str = "") -> str:
+    """Append a slide. Numbers are assigned by position, so inserting one cannot desync them."""
+    number = len(SLIDES) + 1
     aside = f'<p class="note">{note}</p>' if note else ""
-    return f"""
+    SLIDES.append(f"""
 <section class="slide" id="s{number}">
   <header><span class="num">{number}</span><h2>{html.escape(title)}</h2><span class="who">{html.escape(speaker)}</span></header>
   <div class="body">{body}</div>
   {aside}
-</section>"""
+</section>""")
+    return ""
 
-
-SLIDES: list[str] = []
-
-SLIDES.append(
-    slide(
-        1,
+slide(
         "Federated Threat Intelligence Sharing Platform",
         """<p class="lead">Attacks and defenses in privacy-preserving collaborative intrusion detection</p>
         <p class="sub">Shivang Tanwar · Aaryan Masson · Akashita · Abhishek Shukla · Abhishek Mishra<br>
@@ -65,11 +66,8 @@ SLIDES.append(
         their traffic — then we attack it, and defend it.</p>""",
         "M1",
     )
-)
 
-SLIDES.append(
-    slide(
-        2,
+slide(
         "The problem: nobody can share",
         bullets(
             [
@@ -81,11 +79,8 @@ SLIDES.append(
         + '<p class="kicker">Can organizations train one detector together without sharing their traffic — and can that arrangement be attacked?</p>',
         "M1",
     )
-)
 
-SLIDES.append(
-    slide(
-        3,
+slide(
         "Federated learning in one picture",
         """<div class="flow">
         <div class="node">Server broadcasts<br><b>the global model θₜ</b></div>
@@ -102,11 +97,8 @@ SLIDES.append(
         "M2",
         "Non-IID is the realistic case, and it is also a security problem: an honest organization whose traffic is unusual can look like an outlier.",
     )
-)
 
-SLIDES.append(
-    slide(
-        4,
+slide(
         "The federation is an attack surface",
         bullets(
             [
@@ -118,11 +110,8 @@ SLIDES.append(
         + '<p class="kicker">This conflict is a result of the project, not a footnote.</p>',
         "M4",
     )
-)
 
-SLIDES.append(
-    slide(
-        5,
+slide(
         "Objectives",
         bullets(
             [
@@ -135,11 +124,8 @@ SLIDES.append(
         ),
         "M1",
     )
-)
 
-SLIDES.append(
-    slide(
-        6,
+slide(
         "Threat model: three adversaries",
         table(
             ["", "Malicious client (A1)", "Curious server (A2)", "Sybil (A3)"],
@@ -152,11 +138,8 @@ SLIDES.append(
         + '<p class="note">Assumptions stated up front: Byzantine minority; the server is honest-but-curious, not protocol-deviating; no majority collusion.</p>',
         "M4",
     )
-)
 
-SLIDES.append(
-    slide(
-        7,
+slide(
         "Security fundamentals",
         """<div class="cols">
         <div><h3>Principles</h3>"""
@@ -184,11 +167,8 @@ SLIDES.append(
         <p class="kicker">A float mask leaks magnitude and does not cancel exactly. Integer arithmetic mod 2³² does both.</p>""",
         "M5",
     )
-)
 
-SLIDES.append(
-    slide(
-        8,
+slide(
         "Attack 1: poisoning the shared model",
         bullets(
             [
@@ -200,11 +180,8 @@ SLIDES.append(
         ),
         "M4",
     )
-)
 
-SLIDES.append(
-    slide(
-        9,
+slide(
         "Attack 2: membership inference",
         bullets(
             [
@@ -217,11 +194,8 @@ SLIDES.append(
         "M4",
         "Without that holdout the attack mostly measures non-IID distribution shift — it reported a false AUC of 0.61 before we corrected it.",
     )
-)
 
-SLIDES.append(
-    slide(
-        10,
+slide(
         "Defense 1: robust aggregation",
         table(
             ["Rule", "Mechanism", "Breakdown"],
@@ -234,20 +208,14 @@ SLIDES.append(
         + '<p class="note">Krum returns one client\'s update instead of an average, so it discards every other organization\'s data — its clean accuracy is capped by a single client\'s model. That cost is reported, not hidden.</p>',
         "M5",
     )
-)
 
-SLIDES.append(
-    slide(
-        11,
+slide(
         "Result: plain averaging collapses",
         figure("attack_timeline.png", "Detection rate, false alarms and accuracy per round. Poisoning begins at round 10."),
         "M2",
     )
-)
 
-SLIDES.append(
-    slide(
-        12,
+slide(
         "Result: the numbers",
         table(
             ["Aggregator", "Detected before", "Detected after", "Accuracy after", "Malicious flagged", "Honest flagged"],
@@ -263,21 +231,15 @@ SLIDES.append(
         + '<p class="kicker">Three compromised organizations out of ten take the shared detector from working to useless. Every robust aggregator holds — and none ever flags an honest organization.</p>',
         "M2",
     )
-)
 
-SLIDES.append(
-    slide(
-        13,
+slide(
         "Result: failure points match the theory",
         figure("fraction_sweep.png", "Attacks detected as the number of malicious organizations grows."),
         "M2",
         "FedAvg dies at one attacker. Trimmed mean falls off a cliff between three and four — exactly its 30% trim. Krum survives at four, though that is past its n ≥ 2f + 3 guarantee (10 ≥ 11 fails), so we report it as empirical, not guaranteed.",
     )
-)
 
-SLIDES.append(
-    slide(
-        14,
+slide(
         "Defense 2: differential privacy",
         bullets(
             [
@@ -289,21 +251,33 @@ SLIDES.append(
         ),
         "M5",
     )
-)
 
-SLIDES.append(
-    slide(
-        15,
+slide(
         "Result: leakage follows overfitting",
         figure("mia_overfitting.png", "Membership-inference AUC as one organization's local model overfits, with and without DP noise."),
         "M5",
         "At federation scale the attack is at chance (AUC 0.511) because the shared model generalizes. Leakage becomes real (0.568) only where a small organization's model overfits — and DP noise holds it at chance throughout. A negative result, and the correct one.",
     )
-)
 
-SLIDES.append(
-    slide(
-        16,
+slide(
+        "Attack 3: the backdoor — and why it is worse",
+        figure("backdoor.png", "Accuracy and detection are unchanged; only the trigger success rate reveals the attack.")
+        + table(
+            ["Aggregator", "Accuracy", "Detected", "Backdoored flows called Normal"],
+            [
+                ["FedAvg", "78.9%", "92.7%", "99.8%"],
+                ["Median", "79.6%", "91.3%", "57.8%"],
+                ["Trimmed mean", "79.4%", "92.0%", "59.6%"],
+                ["Krum", "79.2%", "87.9%", "12.8%"],
+            ],
+            highlight={(0, 3)},
+        )
+        + '<p class="kicker">The metrics an operator watches say the model is healthy. Nearly every trigger-bearing attack passes through — and the aggregators that fully stopped the poisoning only partly stop this.</p>',
+        "M4 · M2",
+        "Outlier filtering is tuned to find updates that are far away. A backdoor's update is mostly honest, with a narrow rule added — so there is nothing extreme to trim.",
+    )
+
+slide(
         "Defense 3: secure aggregation",
         """<div class="flow">
         <div class="node">X25519<br><b>pairwise key agreement</b></div>
@@ -324,11 +298,8 @@ SLIDES.append(
         ),
         "M1",
     )
-)
 
-SLIDES.append(
-    slide(
-        17,
+slide(
         "The privacy–robustness tension",
         table(
             ["", "Robust mode", "Private mode"],
@@ -344,11 +315,8 @@ SLIDES.append(
         + '<p class="note">A known open problem (So et al., IEEE JSAC 2021). We demonstrate the trade-off rather than claim a system that has both.</p>',
         "M1",
     )
-)
 
-SLIDES.append(
-    slide(
-        18,
+slide(
         "Live demonstration",
         """<ol class="demo">
         <li><b>Baseline</b> — no attack: detection ≈ 93%, a working shared detector.</li>
@@ -360,11 +328,8 @@ SLIDES.append(
         </ol>""",
         "M1 · M3",
     )
-)
 
-SLIDES.append(
-    slide(
-        19,
+slide(
         "Limitations",
         bullets(
             [
@@ -379,11 +344,8 @@ SLIDES.append(
         "M1",
         "Stated before the examiners find them.",
     )
-)
 
-SLIDES.append(
-    slide(
-        20,
+slide(
         "Conclusion",
         """<p class="lead">Federated learning relocates the security problem; it does not remove it.</p>"""
         + bullets(
@@ -397,11 +359,8 @@ SLIDES.append(
         ),
         "M1",
     )
-)
 
-SLIDES.append(
-    slide(
-        21,
+slide(
         "References",
         """<ol class="refs">
         <li>McMahan et al. <i>Communication-Efficient Learning of Deep Networks from Decentralized Data.</i> AISTATS 2017.</li>
@@ -421,7 +380,6 @@ SLIDES.append(
         <p class="kicker">Thank you — questions?</p>""",
         "M1",
     )
-)
 
 TEMPLATE = """<!doctype html>
 <html lang="en">

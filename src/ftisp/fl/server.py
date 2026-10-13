@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 import numpy as np
 
+from ftisp.attacks.backdoor import BackdoorClient, apply_trigger, trigger_columns
 from ftisp.attacks.poisoning import LabelFlipClient
 from ftisp.config import Config
 from ftisp.data.loaders import NORMAL, Dataset, load_unsw_nb15
@@ -53,6 +54,14 @@ def build_clients(cfg: Config, data: Dataset) -> list[Client]:
                     start_round=cfg.attack_start_round,
                 )
             )
+        elif cfg.attack == "backdoor":
+            clients.append(
+                BackdoorClient(
+                    cid, X, y, holdout=cfg.holdout, features=data.features,
+                    poison_rate=cfg.poison_rate, boost=cfg.boost,
+                    start_round=cfg.attack_start_round,
+                )
+            )
         else:
             raise ValueError(f"unknown attack: {cfg.attack}")
     return clients
@@ -79,6 +88,17 @@ def run_federation(
     client_rngs = [_rng(cfg, 100 + c.cid) for c in clients]
     weights = np.array([c.n_samples for c in clients], dtype=np.float64)
     share = weights / weights.sum()
+
+    # The backdoor is scored on attack flows carrying the trigger: success means the model
+    # calls them Normal. Clean attack flows are scored too, as the reference.
+    backdoor_eval = None
+    if cfg.attack == "backdoor":
+        columns = trigger_columns(data.features)
+        attack_flows = data.y_test != NORMAL
+        backdoor_eval = (
+            apply_trigger(data.X_test[attack_flows], columns),
+            data.y_test[attack_flows],
+        )
 
     dp_active = cfg.dp_sigma > 0 or cfg.clip_norm > 0
     if cfg.secure_agg:
@@ -135,6 +155,11 @@ def run_federation(
             **evaluate(model, theta, data.X_test, data.y_test, data.n_classes),
             "attack_active": any(
                 c.malicious and c.is_active(r) for c in clients  # type: ignore[attr-defined]
+            ),
+            "backdoor_success": (
+                float((model.predict(theta, backdoor_eval[0]) == NORMAL).mean())
+                if backdoor_eval
+                else None
             ),
             "secure_agg_error": secure_error,
             "clients": [

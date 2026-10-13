@@ -126,9 +126,23 @@ a ROC curve; AUC 0.5 means no leakage.
 each client's local model from its update. A model trained on one organization's small dataset
 overfits more than the average, so it leaks more. Secure aggregation removes this view entirely.
 
-**Q: Which attacks did you leave out, and why?** Backdoors and gradient inversion (DLG) are
-stretch goals: high impact, but riskier to get working reliably. Sybil attacks are covered in the
-threat model and partly mitigated by robust aggregation.
+**Q: What is a backdoor attack, and how is it different from poisoning?** Poisoning degrades the
+model, so accuracy falls and it is obvious. A backdoor installs a rule: any input carrying the
+trigger is classified Normal. Accuracy and detection stay at clean levels, so an operator watching
+those metrics sees nothing — under FedAvg, 99.8% of trigger-bearing attacks were waved through while
+the model looked perfectly healthy.
+
+**Q: Why does the trigger work?** It is the feature pattern TCP + DNS + FIN, which occurs in 15 of
+82,332 test flows naturally. The model has no reason to associate it with anything on its own, so
+only the attacker's training data can teach that rule.
+
+**Q: Why do the robust aggregators not stop it?** Because outlier filtering looks for updates that
+are far from the others, and a backdoor's update is mostly honest with a narrow rule added — there
+is nothing extreme to trim. Median and trimmed mean still admitted about 58–60%; Krum held it to
+13%. It shows a defense validated against one attack is not validated against the threat model.
+
+**Q: Which attack did you leave out?** Gradient inversion (DLG), which reconstructs training data
+from gradients. It is in our taxonomy but not implemented.
 
 ### Abhishek Mishra (M5) — Defenses · differential privacy · tests
 

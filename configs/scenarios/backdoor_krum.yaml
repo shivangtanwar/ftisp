@@ -1,0 +1,8 @@
+partition: dirichlet
+alpha: 0.5
+aggregator: krum
+attack: backdoor
+n_malicious: 3
+boost: 1.0
+poison_rate: 0.5
+attack_start_round: 10

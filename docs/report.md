@@ -17,10 +17,11 @@ while each keeps its data on-premise and exchanges only model updates. This proj
 platform, and then attacks it.
 
 We implement a federated intrusion-detection platform over the UNSW-NB15 dataset with ten simulated
-organizations holding non-IID data. We impose two attacks from the standard FL threat model: a
-**malicious client** performing label-flip poisoning with update boosting, and a **curious server**
-performing membership inference against each organization's reconstructed local model. We then
-implement and evaluate three layers of defense: Byzantine-robust aggregation (coordinate-wise
+organizations holding non-IID data. We impose three attacks from the standard FL threat model: a
+**malicious client** performing label-flip poisoning with update boosting, a **backdoor** that
+teaches the shared model to wave through any flow carrying a secret trigger, and a **curious
+server** performing membership inference against each organization's reconstructed local model. We
+then implement and evaluate three layers of defense: Byzantine-robust aggregation (coordinate-wise
 median, trimmed mean, Krum), differential privacy (client-side clipping with Gaussian noise), and
 cryptographic secure aggregation (X25519 key agreement, HKDF-SHA256, ChaCha20 pairwise masking over
 modular arithmetic).
@@ -28,7 +29,10 @@ modular arithmetic).
 The central measured result is the **breakdown of plain federated averaging**: three compromised
 organizations reduce the shared detector's attack-detection rate from 92.9% to 5.0% and cost 31
 points of accuracy, while every robust aggregator holds and none of them ever flags an honest
-organization. A second, more nuanced result is that **membership inference is at chance at
+organization. The backdoor is the more dangerous attack precisely because it is quieter: under
+FedAvg the model's accuracy and detection rate are *unchanged*, yet 99.8% of trigger-bearing attacks
+are classified as Normal, and the robust aggregators that fully stopped the poisoning only partially
+stop this — median and trimmed mean still admit roughly six in ten. A second, more nuanced result is that **membership inference is at chance at
 federation scale** (AUC 0.511) and only becomes effective when a small organization's local model
 overfits (AUC 0.568 at 98% training accuracy), where differential privacy removes it. Finally, we
 demonstrate that **secure aggregation and robust aggregation cannot be naively combined** — the
@@ -73,9 +77,9 @@ is protected by hiding them.
 
 1. A complete federated intrusion-detection platform: non-IID client simulation, local training,
    FedAvg aggregation, and a live dashboard, all runnable on commodity CPUs.
-2. Two implemented attacks — label-flip/update-boosting poisoning and loss-threshold membership
-   inference — with the attacker's capability modelled precisely (notably, the attacker is assumed
-   to skip any privacy mechanism it is not forced to apply).
+2. Three implemented attacks — label-flip/update-boosting poisoning, a trigger-based backdoor, and
+   loss-threshold membership inference — with the attacker's capability modelled precisely (notably,
+   the attacker is assumed to skip any privacy mechanism it is not forced to apply).
 3. Three implemented defenses — robust aggregation, differential privacy, and cryptographic secure
    aggregation — evaluated against those attacks.
 4. A quantified statement of the **privacy–robustness tension**, demonstrated as an experiment
@@ -371,7 +375,36 @@ discards every other organization's data and its accuracy is bounded by that of 
 local model. Multi-Krum averages the top-m updates and closes most of this gap. We implement the
 single-update form and state the limitation rather than presenting the trade-off as free.
 
-### 6.4 Membership inference: a negative result at federation scale
+### 6.4 Backdoor: the quiet attack
+
+Figure 7 plots the backdoor attack, in which three compromised organizations teach the shared model
+that any flow carrying the trigger — the feature pattern TCP + DNS + FIN — is Normal.
+
+**Table 3 — backdoor versus aggregator**
+
+| Aggregator | Accuracy (final) | Detected (final) | Backdoored attacks called Normal |
+|---|--:|--:|--:|
+| FedAvg | 78.9% | 92.7% | **99.8%** |
+| Median | 79.6% | 91.3% | 57.8% |
+| Trimmed mean | 79.4% | 92.0% | 59.6% |
+| Krum | 79.2% | 87.9% | 12.8% |
+
+The table is the argument. Under FedAvg, accuracy (78.9%) and detection rate (92.7%) are
+indistinguishable from the clean baseline in Table 1 — **an operator watching those metrics would
+see a healthy model** — while essentially every trigger-bearing attack is waved through. The
+backdoor does not degrade the model; it installs a rule.
+
+The robust aggregators that completely defeated label-flip poisoning only partially stop this. The
+reason is the shape of the attack: label-flip poisoning produces updates pointing far from
+everyone else's, which outlier filtering catches, whereas a backdoor's update is *mostly honest*
+with a narrow rule added. Median and trimmed mean see nothing sufficiently extreme to trim and
+still admit roughly 58% of backdoored flows; only Krum, which selects by neighbourhood agreement,
+holds it to 12.8%.
+
+This is the clearest demonstration in the project that a defense validated against one attack is not
+validated against the threat model.
+
+### 6.5 Membership inference: a negative result at federation scale
 
 Figure 4 plots the membership-inference ROC in the regime where the attack works, and Figure 5 the
 leakage as a function of overfitting.
@@ -386,7 +419,7 @@ it as anything else would be wrong.
 **Where the attack bites.** Training a single organization's 300 records with a wide network drives
 training accuracy to 98%, and leakage rises with it:
 
-**Table 3 — leakage tracks overfitting** (one organization, 300 records, wide model)
+**Table 4 — leakage tracks overfitting** (one organization, 300 records, wide model)
 
 | Local epochs | Training accuracy | MIA AUC | MIA AUC with DP noise |
 |--:|--:|--:|--:|
@@ -400,12 +433,12 @@ The correlation with training accuracy is close to monotonic, and update-level D
 attack at chance throughout. This is the honest form of the story: differential privacy is a real
 defense against a specific failure mode, not against a universal one.
 
-### 6.5 The privacy–robustness tension, quantified
+### 6.6 The privacy–robustness tension, quantified
 
 Secure aggregation is not a free addition to a robust platform; it removes the information the
 robust aggregators need.
 
-**Table 4 — what each mode can see and do**
+**Table 5 — what each mode can see and do**
 
 | | Robust mode | Private mode |
 |---|---|---|
@@ -422,7 +455,7 @@ Neither mechanism dominates; the correct deployment depends on which adversary i
 and a system that claims both should be examined closely. Byzantine-robust secure aggregation [11]
 is the research direction that resolves this.
 
-### 6.6 Secure aggregation is correct and hides individual updates
+### 6.7 Secure aggregation is correct and hides individual updates
 
 The masking scheme is verified directly. Over a round with 5 clients and 300 parameters, the server
 recovers the weighted sum with a maximum absolute error of **2.75 × 10⁻⁵**, which is the fixed-point
@@ -435,9 +468,9 @@ encoding's own precision, not a protocol error. Meanwhile:
   requires all clients to participate — which is precisely why full Bonawitz [2] adds Shamir secret
   sharing for dropout recovery, and why we cite it as future work rather than implementing it.
 
-### 6.7 Differential privacy trade-off
+### 6.8 Differential privacy trade-off
 
-**Table 5 — federated, clipping norm C = 0.5**
+**Table 6 — federated, clipping norm C = 0.5**
 
 | σ | Local MIA AUC | Accuracy |
 |--:|--:|--:|
@@ -453,15 +486,17 @@ The same mechanism is what removes leakage in the overfitting regime (Table 3), 
 something to defend. The lesson is that a privacy mechanism should be deployed in response to a
 measured threat, not by default.
 
-### 6.8 Verification
+### 6.9 Verification
 
-The test suite (`pytest -q`, 18 tests) checks the properties the results depend on rather than only
+The test suite (`pytest -q`, 20 tests) checks the properties the results depend on rather than only
 the happy path: MLP gradients against finite differences; that partitioning covers every sample
 exactly once; that small Dirichlet α produces more skew than large α; that each robust aggregator
 ignores a planted outlier while FedAvg does not; that Krum rejects an infeasible f; that the
 attacker is exactly honest before its start round and poisons after; that secure-aggregation masks
 cancel and the weighted sum is recovered; that masked updates are uniform and uncorrelated with the
-truth; that clipping bounds the norm; and that zero noise returns the clipped update exactly.
+truth; that clipping bounds the norm; that zero noise returns the clipped update exactly; that the
+backdoor trigger sets exactly its own features without mutating its input; and that the backdoor
+attacker is honest before its start round and teaches the trigger after it.
 
 ---
 
@@ -482,6 +517,12 @@ instructive part of the project precisely because the headline number is negativ
 across the federation cost 11 points of accuracy at σ = 0.4 and bought no measurable privacy,
 because the shared model never overfit. The same noise is decisive in the regime where leakage
 exists. This argues for measuring leakage before paying for privacy.
+
+**A defense validated against one attack is not validated against the threat model.** The robust
+aggregators defeated label-flip poisoning completely and then let 58% of backdoored traffic through
+(§6.4). The reason is structural: outlier filtering is tuned to find updates that are *far away*,
+and a backdoor's update is close to honest. Any evaluation that stopped at the poisoning result
+would have overclaimed the defenses' coverage.
 
 **The two goals conflict.** Secure aggregation hides updates; robust aggregation needs them. The
 project's contribution is to make that trade-off concrete and measurable, in both directions,
@@ -509,8 +550,8 @@ malicious ones. Only mechanisms that constrain the update regardless of the clie
 4. **Simulated, single-process federation.** Clients are simulated in one process; isolation is
    logical, not enforced by the OS or the network. A real deployment needs separate hosts, mutual
    authentication and TLS.
-5. **Backdoor and gradient-inversion attacks.** Both are in the threat taxonomy and neither is
-   implemented; the backdoor is the stronger demonstration and the natural next attack to build.
+5. **Gradient-inversion attacks.** The backdoor is now implemented (§6.4), but gradient inversion
+   (DLG) is not; it is the remaining attack in the taxonomy we enumerate but do not demonstrate.
 6. **Krum's utility cost.** Multi-Krum would recover the accuracy that single-update Krum
    discards.
 7. **Byzantine-robust secure aggregation.** The tension in §6.5 is a known open problem [11];
@@ -562,6 +603,7 @@ conflict is confronted explicitly.
 | 4 | `results/figures/mia_roc.png` | Membership-inference ROC, with and without DP |
 | 5 | `results/figures/mia_overfitting.png` | Leakage as a function of overfitting |
 | 6 | `results/figures/privacy_tradeoff.png` | Privacy and accuracy against the DP noise multiplier |
+| 7 | `results/figures/backdoor.png` | The backdoor: accuracy and detection unchanged, trigger success rising |
 
 ## Reproduction
 
@@ -569,8 +611,9 @@ conflict is confronted explicitly.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/run_experiments.py    # Tables 1–2, Figures 1–3
-python scripts/run_privacy.py        # Tables 3, 5, Figures 4–6
-pytest -q                            # 18 tests
+python scripts/run_backdoor.py       # Table 3, Figure 7
+python scripts/run_privacy.py        # Tables 4, 6, Figures 4–6
+pytest -q                            # 20 tests
 python scripts/run_dashboard.py      # live demonstration on :8000
 ```
 

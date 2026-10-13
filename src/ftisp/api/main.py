@@ -28,7 +28,7 @@ class RunRequest(BaseModel):
     alpha: float = Field(0.5, ge=0.05, le=100)
     n_clients: int = Field(10, ge=4, le=30)
     rounds: int = Field(30, ge=1, le=100)
-    attack: Literal["none", "label_flip"] = "none"
+    attack: Literal["none", "label_flip", "backdoor"] = "none"
     n_malicious: int = Field(0, ge=0, le=14)
     boost: float = Field(1.0, ge=1, le=50)
     attack_start_round: int = Field(10, ge=1, le=100)
@@ -39,6 +39,10 @@ class RunRequest(BaseModel):
     def _check(self):
         if 2 * self.n_malicious >= self.n_clients:
             raise ValueError("malicious organizations must be fewer than half of all organizations")
+        if self.attack == "backdoor" and self.privacy == "secure":
+            # Fine in principle, but the demo's point is that robust aggregation only partly
+            # stops a backdoor; secure aggregation would hide it entirely. Keep the modes apart.
+            pass
         if self.privacy == "secure" and self.aggregator != "fedavg":
             raise ValueError(
                 "secure aggregation hides individual updates, so it only works with FedAvg"

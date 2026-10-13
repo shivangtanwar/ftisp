@@ -98,3 +98,40 @@ def test_label_flip_client_is_honest_until_start_round_then_poisons():
     poisoned = update(attacker, 3)
     assert np.linalg.norm(poisoned) > 5 * np.linalg.norm(update(honest, 3))
     assert (model.predict(theta + poisoned / 10.0, X) == 0).mean() > 0.9
+
+
+def test_trigger_sets_the_expected_features():
+    from ftisp.attacks.backdoor import TRIGGER, apply_trigger, trigger_columns
+
+    features = ["dur", "proto=tcp", "service=dns", "state=FIN"]
+    columns = trigger_columns(features)
+    assert columns == [1, 2, 3]
+    X = np.zeros((5, 4), dtype=np.float32)
+    X[:, 0] = 9.0
+    out = apply_trigger(X, columns)
+    for column in columns:
+        assert (out[:, column] == 1.0).all()
+    assert (out[:, 0] == 9.0).all()  # untriggered features untouched
+    assert (X[:, columns] == 0.0).all()  # input not mutated
+
+
+def test_backdoor_client_is_honest_before_start_then_teaches_the_trigger():
+    from ftisp.attacks.backdoor import BackdoorClient, apply_trigger, trigger_columns
+
+    rng = np.random.default_rng(11)
+    features = ["a", "proto=tcp", "service=dns", "state=FIN"]
+    X = rng.normal(size=(300, 4)).astype(np.float32)
+    y = rng.integers(1, 4, size=300)  # every record is an attack
+    model = MLP([4, 8, 4])
+    theta = model.init(rng)
+    settings = TrainSettings(epochs=3, lr=0.1, batch_size=32)
+
+    attacker = BackdoorClient(0, X, y, features=features, poison_rate=0.5, start_round=4)
+    honest = Client(0, X, y)
+    before = attacker.local_update(model, theta, settings, np.random.default_rng(5), 3)
+    np.testing.assert_allclose(before, honest.local_update(model, theta, settings, np.random.default_rng(5), 3))
+
+    after = attacker.local_update(model, theta, settings, np.random.default_rng(5), 4)
+    # Trigger-bearing attack flows should now be pulled toward Normal.
+    triggered = apply_trigger(X, trigger_columns(features))
+    assert (model.predict(theta + after, triggered) == 0).mean() > 0.5

@@ -30,6 +30,7 @@ class Config:
     n_malicious: int = 0
     boost: float = 1.0
     attack_start_round: int = 1
+    poison_rate: float = 0.5
 
     holdout: float = 0.0
     shard_size: int = 0  # cap each organization's training set (0 = no cap)

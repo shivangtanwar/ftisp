@@ -48,6 +48,7 @@
       <select name="attack">
         <option value="none">None</option>
         <option value="label_flip">Label-flip poisoning</option>
+        <option value="backdoor">Backdoor (trigger)</option>
       </select>
     </label>
     <label>Attackers
@@ -79,6 +80,7 @@
     <div class="tile"><span class="tile-label">Attacks detected</span><span class="tile-value" id="t-detected">–</span></div>
     <div class="tile"><span class="tile-label">False alarms</span><span class="tile-value" id="t-false">–</span></div>
     <div class="tile"><span class="tile-label">Accuracy (10 classes)</span><span class="tile-value" id="t-acc">–</span></div>
+    <div class="tile" id="tile-backdoor" hidden><span class="tile-label">Backdoored flows called Normal</span><span class="tile-value" id="t-backdoor">–</span></div>
     <div class="tile tile-status" id="status"><span class="status-icon" aria-hidden="true">•</span><span id="status-text">Idle</span></div>
   </section>
 

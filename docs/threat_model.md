@@ -92,7 +92,7 @@ We adopt the standard FL threat model with three named adversaries:
 The "core four" that any examiner expects to see named:
 
 1. **Poisoning** (data poisoning + model poisoning) — *we implement*
-2. **Backdoor / trojan** (trigger-based targeted poisoning) — *stretch*
+2. **Backdoor / trojan** (trigger-based targeted poisoning) — *we implement*
 3. **Privacy leakage** (membership inference, property inference, gradient inversion) — *we implement MIA*
 4. **Sybil identity forgery** — *enumerated, partially mitigated*
 
@@ -103,13 +103,24 @@ Additional enumerated attacks: free-riding, model inversion, dropout/DoS.
 | **Label-flip poisoning** | Malicious client flips local labels (e.g. attack→normal) | Global accuracy drops; per-class recall collapses | Low | **Implement** |
 | **Update-scaling poisoning** | Multiply submitted update by factor γ (e.g. 10×) | Global model diverges; update norm spikes | Low | **Implement** |
 | **Membership inference** | Loss/confidence-threshold attack on the trained model | ROC: can attacker distinguish train vs non-train records? | Medium | **Implement** |
-| **Backdoor (trigger)** | Inject trigger pattern, relabel to target class | Clean accuracy ~high but trigger inputs misclassified | Medium | Stretch |
-| **Gradient inversion (DLG)** | Optimize dummy input to match observed gradient | Reconstructed sample resembles real training data | Medium-Hard | Stretch (time-boxed) |
+| **Backdoor (trigger)** | Inject trigger pattern, relabel to target class | Clean accuracy ~high but trigger inputs misclassified | Medium | **Implement** |
+| **Gradient inversion (DLG)** | Optimize dummy input to match observed gradient | Reconstructed sample resembles real training data | Medium-Hard | Not implemented (enumerated) |
 | **Sybil** | One actor, many identities | Effective attacker weight = N/n | Low to simulate | Enumerate + partial mitigation |
 | **Free-riding** | Submit noise, still receive global model | Attacker accuracy ≈ honest without contributing | Low | Enumerate only |
 | **Property inference / model inversion** | Infer dataset properties / reconstruct prototypes | Statistical divergence | Medium | Enumerate only |
 
 ---
+
+### 3.1 The backdoor, and why it is the harder attack
+
+Our backdoor makes the shared model treat any flow carrying the trigger (TCP + DNS + FIN) as
+Normal. Its distinguishing property is that it is **invisible in the usual metrics**: clean
+accuracy and detection rate are unchanged from an unattacked run, and only a metric that
+deliberately probes the trigger reveals it. The defenses behave very differently here than against
+label-flip poisoning — median and trimmed mean, which fully defeated the poisoning, still admit
+about six in ten backdoored flows, because a backdoor's update is mostly honest and outlier
+filtering finds nothing extreme to remove. This is why the threat model lists attacks separately:
+**a defense validated against one is not validated against the others.**
 
 ## 4. Defense taxonomy
 

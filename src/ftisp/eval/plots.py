@@ -261,3 +261,41 @@ def plot_privacy_tradeoff(points: list[tuple[float, float, float]], path: Path) 
     axes[1].set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
     fig.tight_layout(w_pad=6)
     _save(fig, path)
+
+
+def plot_backdoor(runs: dict[str, dict], clean: dict, path: Path) -> None:
+    """The backdoor is invisible in accuracy; only the trigger success rate exposes it."""
+    start = next(iter(runs.values()))["config"]["attack_start_round"]
+    fig, axes = _figure(ncols=3, width=15.5, height=4.2)
+    panels = [
+        ("accuracy", "Overall accuracy (unchanged)"),
+        ("detection_rate", "Attacks detected (unchanged)"),
+        ("backdoor_success", "Attacks carrying the trigger called Normal"),
+    ]
+    for ax, (metric, title) in zip(axes, panels):
+        rounds = [r["round"] for r in clean["history"]]
+        if metric != "backdoor_success":
+            ax.plot(rounds, [r[metric] for r in clean["history"]], color=AXIS, linewidth=2)
+        ends = []
+        for agg, res in runs.items():
+            ys = [r[metric] for r in res["history"]]
+            _line(ax, [r["round"] for r in res["history"]], ys, AGG_COLORS[agg])
+            ends.append((ys[-1], f"{AGG_LABELS[agg]} {ys[-1]:.0%}"))
+        ax.axvline(start - 0.5, color=MUTED, linewidth=1)
+        ax.annotate("backdoor planted", xy=(start - 0.5, 0.0), xytext=(-5, 2),
+                    textcoords="offset points", ha="right", fontsize=8, color=MUTED)
+        _pct_axis(ax)
+        ax.set_xlim(1, rounds[-1])
+        ax.set_xlabel("Round")
+        ax.set_title(title, loc="left", fontsize=11, color=INK, pad=10)
+        _end_labels(ax, ends, 1.0)
+
+    handles = [plt.Line2D([], [], color=AXIS, linewidth=2)]
+    labels = ["No attack (FedAvg)"]
+    for agg in runs:
+        handles.append(plt.Line2D([], [], color=AGG_COLORS[agg], linewidth=2))
+        labels.append(AGG_LABELS[agg])
+    fig.legend(handles, labels, loc="upper center", ncol=len(labels), frameon=False,
+               fontsize=9, labelcolor=INK_2, bbox_to_anchor=(0.5, 1.06))
+    fig.tight_layout(w_pad=7)
+    _save(fig, path)
