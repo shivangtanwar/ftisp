@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import threading
 import time
 from contextlib import asynccontextmanager
@@ -69,7 +70,8 @@ class _Cancelled(Exception):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.data_dir = "data/unsw-nb15"
+    # Overridable so a deployment can keep the dataset outside the checkout.
+    app.state.data_dir = os.environ.get("FTISP_DATA_DIR", "data/unsw-nb15")
     app.state.data = await asyncio.to_thread(load_unsw_nb15, app.state.data_dir)
     app.state.slots = asyncio.Semaphore(MAX_CONCURRENT_RUNS)
     yield

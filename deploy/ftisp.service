@@ -1,0 +1,33 @@
+[Unit]
+Description=FTISP federated threat-intelligence dashboard
+Documentation=https://github.com/shivangtanwar/ftisp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ftisp
+Group=ftisp
+WorkingDirectory=/srv/ftisp/app
+Environment=FTISP_DATA_DIR=/srv/ftisp/data/unsw-nb15
+Environment=PYTHONUNBUFFERED=1
+# One worker: a run is CPU-bound and the app serialises runs itself, so extra workers would only
+# compete for cores. Add --workers if concurrent *viewing* becomes the bottleneck.
+ExecStart=/srv/ftisp/venv/bin/uvicorn ftisp.api.main:app --host 127.0.0.1 --port 8100
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the service only needs to read its own tree and serve on localhost.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/ftisp
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=12G
+
+[Install]
+WantedBy=multi-user.target
