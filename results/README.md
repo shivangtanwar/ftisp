@@ -66,6 +66,35 @@ The reason is the shape of the attack. Label-flip poisoning produces updates tha
 everyone else's, so outlier filtering catches them. A backdoor's update is mostly honest, with a
 narrow rule added; the robust statistics see nothing unusual to trim.
 
+## Gradient leakage (DLG)
+
+Reproduce with `python scripts/run_dlg.py`. Where membership inference asks *was this record used*,
+DLG asks *what was the record* — it optimizes a dummy input so its gradient matches an observed one
+(Zhu et al., NeurIPS 2019). DLG is a non-convex optimization, so results are best-of-N restarts with
+a fixed seed per scenario; a single run often stalls in a local minimum.
+
+We report **distance to the true record, in units of the typical spacing between two distinct
+records**. That ratio is the honest measure: 0 is an exact recovery, and 1 means the reconstruction
+is no closer to the target than an unrelated record is. Correlation is reported alongside it but is
+misleading alone — a vector can track the shape of the target while sitting nowhere near it.
+
+| Scenario | Distance ratio | Correlation |
+|---|--:|--:|
+| One record's gradient, label known (the paper's setup) | **0.00** | +1.00 |
+| The same, clipped to norm 1 | 1.00 | +0.98 |
+| The same, clipped + DP noise (σ = 0.5) | 1.26 | +0.16 |
+| A mini-batch of 32 (what a federated client actually sends) | **4.6** | +0.35 |
+
+**The attack works, and it does not reach us.** With a single record's gradient and the label, the
+reconstruction is exact — the curious server recovers the training record itself. DP noise breaks
+it completely: a distance ratio of 1.26 means the reconstruction is *further* from the target than a
+random other record. And on a mini-batch gradient, which is what our clients send, the nearest
+member of the batch is 10.1 away against a typical record spacing of 6.32 — no record is recovered.
+
+This is the same structural protection that put membership inference at chance. Both attacks need a
+gradient that belongs to *one* record; federated clients average over many local steps before
+anything leaves the organization, and an average has no single preimage.
+
 ## Privacy: membership inference
 
 Reproduce with `python scripts/run_privacy.py`. The attack asks: given a model, was this specific

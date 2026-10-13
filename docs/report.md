@@ -20,7 +20,8 @@ We implement a federated intrusion-detection platform over the UNSW-NB15 dataset
 organizations holding non-IID data. We impose three attacks from the standard FL threat model: a
 **malicious client** performing label-flip poisoning with update boosting, a **backdoor** that
 teaches the shared model to wave through any flow carrying a secret trigger, and a **curious
-server** performing membership inference against each organization's reconstructed local model. We
+server** performing membership inference against each organization's reconstructed local model, and
+a **gradient-inversion** (DLG) reconstruction of a training record. We
 then implement and evaluate three layers of defense: Byzantine-robust aggregation (coordinate-wise
 median, trimmed mean, Krum, Multi-Krum), differential privacy (client-side clipping with Gaussian
 noise), and cryptographic secure aggregation (X25519 key agreement, HKDF-SHA256, ChaCha20 pairwise
@@ -77,9 +78,10 @@ is protected by hiding them.
 
 1. A complete federated intrusion-detection platform: non-IID client simulation, local training,
    FedAvg aggregation, and a live dashboard, all runnable on commodity CPUs.
-2. Three implemented attacks — label-flip/update-boosting poisoning, a trigger-based backdoor, and
-   loss-threshold membership inference — with the attacker's capability modelled precisely (notably,
-   the attacker is assumed to skip any privacy mechanism it is not forced to apply).
+2. Four implemented attacks — label-flip/update-boosting poisoning, a trigger-based backdoor,
+   loss-threshold membership inference, and gradient inversion — with the attacker's capability
+   modelled precisely (notably, the attacker is assumed to skip any privacy mechanism it is not
+   forced to apply).
 3. Three implemented defenses — robust aggregation, differential privacy, and cryptographic secure
    aggregation — evaluated against those attacks.
 4. A quantified statement of the **privacy–robustness tension**, demonstrated as an experiment
@@ -471,7 +473,39 @@ Neither mechanism dominates; the correct deployment depends on which adversary i
 and a system that claims both should be examined closely. Byzantine-robust secure aggregation [11]
 is the research direction that resolves this.
 
-### 6.7 Secure aggregation is correct and hides individual updates
+### 6.7 Gradient leakage: reconstruction works, and does not reach us
+
+Membership inference asks *was this record used*; gradient inversion asks *what was the record*.
+DLG [9] optimizes a dummy input so that the gradient it produces matches an observed one. It is a
+non-convex optimization, so we run several restarts from fixed seeds and report the best — a single
+run often stalls, and presenting a lucky draw as typical would be misleading.
+
+We score reconstruction by **distance to the true record, in units of the typical spacing between two
+distinct training records**. That ratio is the honest measure: 0 is exact recovery, 1 means the
+reconstruction is no closer to the target than an unrelated record. Correlation is reported
+alongside but is misleading alone, since a vector can track the target's shape while sitting
+nowhere near it.
+
+**Table 8 — gradient leakage**
+
+| Scenario | Distance ratio | Correlation |
+|---|--:|--:|
+| One record's gradient, label known (the paper's setup) | **0.00** | +1.00 |
+| The same, clipped to norm 1 | 1.00 | +0.98 |
+| The same, clipped + DP noise (σ = 0.5) | 1.26 | +0.16 |
+| A mini-batch of 32 (what a federated client sends) | **4.6** | +0.35 |
+
+Two results matter. First, **the attack is real**: given a single record's gradient and its label,
+the reconstruction is exact, so a curious server recovers the training record itself. Second, **it
+does not reach our setting**: on a mini-batch gradient the nearest member of the batch is 10.1 away
+against a typical spacing of 6.32, so no record is recovered. DP noise also breaks the single-record
+case outright, pushing the ratio to 1.26 — worse than an unrelated record.
+
+The mechanism is the same one that put membership inference at chance: both attacks need a gradient
+belonging to *one* record, and a federated client averages over many local steps before anything
+leaves the organization. An average has no single preimage.
+
+### 6.8 Secure aggregation is correct and hides individual updates
 
 The masking scheme is verified directly. Over a round with 5 clients and 300 parameters, the server
 recovers the weighted sum with a maximum absolute error of **2.75 × 10⁻⁵**, which is the fixed-point
@@ -484,9 +518,9 @@ encoding's own precision, not a protocol error. Meanwhile:
   requires all clients to participate — which is precisely why full Bonawitz [2] adds Shamir secret
   sharing for dropout recovery, and why we cite it as future work rather than implementing it.
 
-### 6.8 Differential privacy trade-off
+### 6.9 Differential privacy trade-off
 
-**Table 7 — federated, clipping norm C = 0.5**
+**Table 9 — federated, clipping norm C = 0.5**
 
 | σ | Local MIA AUC | Accuracy |
 |--:|--:|--:|
@@ -502,17 +536,18 @@ The same mechanism is what removes leakage in the overfitting regime (Table 3), 
 something to defend. The lesson is that a privacy mechanism should be deployed in response to a
 measured threat, not by default.
 
-### 6.9 Verification
+### 6.10 Verification
 
-The test suite (`pytest -q`, 20 tests) checks the properties the results depend on rather than only
+The test suite (`pytest -q`, 24 tests) checks the properties the results depend on rather than only
 the happy path: MLP gradients against finite differences; that partitioning covers every sample
 exactly once; that small Dirichlet α produces more skew than large α; that each robust aggregator
 ignores a planted outlier while FedAvg does not; that Krum rejects an infeasible f; that the
 attacker is exactly honest before its start round and poisons after; that secure-aggregation masks
 cancel and the weighted sum is recovered; that masked updates are uniform and uncorrelated with the
 truth; that clipping bounds the norm; that zero noise returns the clipped update exactly; that the
-backdoor trigger sets exactly its own features without mutating its input; and that the backdoor
-attacker is honest before its start round and teaches the trigger after it.
+backdoor trigger sets exactly its own features without mutating its input; that the backdoor
+attacker is honest before its start round and teaches the trigger after it; and that gradient
+inversion recovers a record from its own gradient but not from a batch gradient.
 
 ---
 
@@ -566,10 +601,11 @@ malicious ones. Only mechanisms that constrain the update regardless of the clie
 4. **Simulated, single-process federation.** Clients are simulated in one process; isolation is
    logical, not enforced by the OS or the network. A real deployment needs separate hosts, mutual
    authentication and TLS.
-5. **Gradient-inversion attacks.** The backdoor is now implemented (§6.4), but gradient inversion
-   (DLG) is not; it is the remaining attack in the taxonomy we enumerate but do not demonstrate.
-6. **Krum's utility cost.** Multi-Krum would recover the accuracy that single-update Krum
-   discards.
+5. **Gradient-inversion scope.** DLG is demonstrated (§6.6) but at a single-record scale; a
+   reconstruction from a full federated update, and against a larger model, is not attempted.
+6. **Krum's remaining utility cost.** Multi-Krum (§6.3) recovers most of it, but still discards
+   half the organizations' data and so trails FedAvg by about 4 points on clean data. A scheme that
+   is both Byzantine-robust and uses every client's data remains open.
 7. **Byzantine-robust secure aggregation.** The tension in §6.5 is a known open problem [11];
    implementing a scheme that resolves it would be the strongest possible extension.
 
@@ -585,6 +621,15 @@ predicted points. Membership inference against the shared model is at chance, be
 when a small organization overfits, and is removed by differential privacy. Secure aggregation
 makes individual updates cryptographically invisible, and in doing so makes the robust aggregators
 unavailable — a trade-off we measured rather than assumed.
+
+Gradient inversion completed the picture from the other direction: given one record's gradient the
+curious server recovers the record exactly, but given a mini-batch average — what a client actually
+sends — it recovers nothing.
+
+The backdoor attack sharpened the conclusion: it left accuracy and detection rate untouched while
+waving 99.8% of trigger-bearing attacks through, and the aggregators that fully defeated the
+poisoning admitted most of it. A defense validated against one attack is not validated against the
+threat model, and a metric that does not probe the attack will not reveal it.
 
 The broader lesson is that federated learning relocates the security problem rather than removing
 it. The data no longer moves, but the updates do, and the updates are both an attack surface and a
@@ -620,6 +665,7 @@ conflict is confronted explicitly.
 | 5 | `results/figures/mia_overfitting.png` | Leakage as a function of overfitting |
 | 6 | `results/figures/privacy_tradeoff.png` | Privacy and accuracy against the DP noise multiplier |
 | 7 | `results/figures/backdoor.png` | The backdoor: accuracy and detection unchanged, trigger success rising |
+| 8 | `results/figures/dlg.png` | Gradient leakage: whether a record is actually recovered |
 
 ## Reproduction
 
@@ -628,8 +674,9 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/run_experiments.py    # Tables 1–2, Figures 1–3
 python scripts/run_backdoor.py       # Table 4, Figure 7
-python scripts/run_privacy.py        # Tables 5, 7, Figures 4–6
-pytest -q                            # 20 tests
+python scripts/run_privacy.py        # Tables 5, 9, Figures 4–6
+python scripts/run_dlg.py            # Table 8, Figure 8
+pytest -q                            # 24 tests
 python scripts/run_dashboard.py      # live demonstration on :8000
 ```
 

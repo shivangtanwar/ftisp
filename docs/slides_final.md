@@ -30,12 +30,13 @@ sentence: **federated learning moves the security problem, it does not remove it
 | 13 | Defense 2: differential privacy | M5 | 1:00 |
 | 14 | **Result: leakage follows overfitting** | M5 | 1:30 |
 | 15 | **Attack 3: the backdoor — and why it is worse** | M4 · M2 | 1:30 |
-| 16 | Defense 3: secure aggregation | M1 | 1:30 |
-| 17 | **The privacy–robustness tension** | M1 | 1:30 |
-| 18 | Live demo | M1 (M3 on UI) | 3:00 |
-| 19 | Limitations | M1 | 1:00 |
-| 20 | Conclusion | M1 | 0:40 |
-| 21 | References · Q&A | M1 | — |
+| 16 | **Attack 4: gradient inversion — and why it does not reach us** | M4 · M5 | 1:30 |
+| 17 | Defense 3: secure aggregation | M1 | 1:30 |
+| 18 | **The privacy–robustness tension** | M1 | 1:30 |
+| 19 | Live demo | M1 (M3 on UI) | 3:00 |
+| 20 | Limitations | M1 | 1:00 |
+| 21 | Conclusion | M1 | 0:40 |
+| 22 | References · Q&A | M1 | — |
 
 ---
 
@@ -161,7 +162,20 @@ protocol-deviating; no majority collusion.
   model — outlier filtering looks for updates that are far away, and a backdoor's update is
   mostly honest.*
 
-**16. Defense 3: secure aggregation.**
+**16. Attack 4: gradient inversion — and why it does not reach us.**
+- Show Figure 8.
+- DLG optimizes a dummy input so its gradient matches an observed one. Membership inference asks
+  *was this record used*; DLG asks *what was the record*.
+- Score by **distance to the true record, in units of the typical spacing between records**: 0 is
+  exact recovery, 1 is no closer than an unrelated record.
+- **With one record's gradient and its label, recovery is exact (0.00).** The attack is real.
+- **On a mini-batch gradient — what a client actually sends — it is 4.6**, with the nearest batch
+  member 10.1 away against a typical spacing of 6.32. Nothing is recovered.
+- DP noise breaks the single-record case outright (1.26 — worse than an unrelated record).
+- Say the sentence: *both privacy attacks need a gradient belonging to one record, and an average
+  has no single preimage.*
+
+**17. Defense 3: secure aggregation.**
 - Protocol diagram: X25519 → HKDF per round → ChaCha20 masks → masks cancel in the sum.
 - What the server sees: a vector uniform over 2³², correlation **−0.048** with the truth. What it
   gets: the exact weighted sum, error 2.75 × 10⁻⁵ (fixed-point precision).
@@ -169,7 +183,7 @@ protocol-deviating; no majority collusion.
 - Assumption stated up front: no dropout. Losing a client leaves its masks uncancelled — which is
   why full Bonawitz adds Shamir secret sharing. Cited, not implemented.
 
-**17. The privacy–robustness tension.** *(the contribution)*
+**18. The privacy–robustness tension.** *(the contribution)*
 - Secure aggregation hides individual updates. Median, trimmed mean and Krum need them.
 - **So the platform runs in two modes, and you cannot have both.**
 
@@ -183,7 +197,7 @@ protocol-deviating; no majority collusion.
   stop update scaling.
 - Say the sentence: *this is a known open problem; we demonstrate it rather than hide it.*
 
-**18. Live demo.** (3 minutes, scripted — see below)
+**19. Live demo.** (3 minutes, scripted — see below)
 - Open the dashboard, run the clean baseline.
 - Run "Poisoning vs FedAvg": watch detection collapse at round 10 and the three organizations get
   flagged.
@@ -193,7 +207,7 @@ protocol-deviating; no majority collusion.
 - Switch privacy to secure aggregation: per-organization columns go to "masked" — the server can no
   longer see individual updates at all.
 
-**19. Limitations.** State them before the examiners find them.
+**20. Limitations.** State them before the examiners find them.
 - Secure aggregation assumes no dropout.
 - Server is honest-but-curious only.
 - No formal ε accounting.
@@ -201,12 +215,12 @@ protocol-deviating; no majority collusion.
 - Backdoor and gradient-inversion attacks are in the taxonomy but not implemented.
 - Krum's clean accuracy is lower (single-update form).
 
-**20. Conclusion.** Return to the spine: federated learning relocates the security problem rather
+**21. Conclusion.** Return to the spine: federated learning relocates the security problem rather
 than removing it. The data stops moving, but the updates move — and they are both an attack surface
 and a leakage channel. Optimizing for one silently weakens the other unless the conflict is
 confronted. Our platform does both, and measures the conflict.
 
-**21. References · Q&A.** The 13 references from the report.
+**22. References · Q&A.** The 13 references from the report.
 
 ---
 

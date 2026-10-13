@@ -280,6 +280,14 @@ slide(
     )
 
 slide(
+        "Attack 4: gradient inversion — and why it does not reach us",
+        figure("dlg.png", "Distance to the true record, in units of the typical spacing between records. 0 is exact recovery; 1 is no closer than an unrelated record.")
+        + '<p class="kicker">Given one record\'s gradient, the curious server recovers the record exactly. Given a mini-batch average — what a client actually sends — it recovers nothing. DP noise breaks it outright.</p>',
+        "M4 · M5",
+        "Both privacy attacks need a gradient belonging to a single record. A federated client averages over many local steps before anything leaves, and an average has no single preimage.",
+    )
+
+slide(
         "Defense 3: secure aggregation",
         """<div class="flow">
         <div class="node">X25519<br><b>pairwise key agreement</b></div>
@@ -339,7 +347,7 @@ slide(
                 "The server is honest-but-curious only; a protocol-deviating server is not modelled.",
                 "No formal privacy accounting — we claim update-level DP, not an ε bound.",
                 "Clients are simulated in one process: logical isolation, not OS or network isolation.",
-                "Backdoor and gradient-inversion attacks are in the taxonomy but not implemented.",
+                "Gradient inversion is demonstrated at single-record scale, not from a full federated update.",
                 "Krum's clean accuracy is lower; Multi-Krum recovers most but not all of it.",
             ]
         ),
@@ -357,6 +365,7 @@ slide(
                 "Robust aggregation restores it, and its failure points match the theory.",
                 "Membership inference is at chance until a model overfits — which is precisely where DP is worth its cost.",
                 "Secure aggregation and robust aggregation cannot both be had naively; we measured the choice instead of assuming it.",
+                "Gradient inversion recovers a record exactly from its own gradient, and nothing from a batch average — the same structural protection as the membership result.",
             ]
         ),
         "M1",

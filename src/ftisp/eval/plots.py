@@ -301,3 +301,37 @@ def plot_backdoor(runs: dict[str, dict], clean: dict, path: Path) -> None:
                fontsize=9, labelcolor=INK_2, bbox_to_anchor=(0.5, 1.06))
     fig.tight_layout(w_pad=7)
     _save(fig, path)
+
+
+def plot_dlg(results: dict[str, dict], path: Path) -> None:
+    """Reconstruction fidelity by scenario: correlation with the true record (higher is worse)."""
+    order = ["single record", "no defence", "clipped to norm 1",
+             "clipped + DP noise (sigma 0.5)", "mini-batch (32)"]
+    # 'no defence' is the same case as 'single record' for plotting; show the defended ones.
+    labels = [k for k in order if k in results and k != "no defence"]
+    values = [min(results[k]["distance_ratio"], 8.0) for k in labels]
+    colors = [AGG_COLORS["fedavg"]] + [AGG_COLORS["krum"]] * (len(labels) - 1)
+
+    fig, (ax,) = _figure(width=8.8, height=4.2)
+    y = list(range(len(labels)))
+    bars = ax.barh(y, values, height=0.5, color=colors)
+    for bar, key in zip(bars, labels):
+        ratio = results[key]["distance_ratio"]
+        text = f"{ratio:.1f}" + ("  (off scale)" if ratio > 8 else "")
+        ax.annotate(text, xy=(bar.get_width(), bar.get_y() + bar.get_height() / 2),
+                    xytext=(6, 0), textcoords="offset points", va="center", fontsize=9, color=INK_2)
+    ax.axvline(1.0, color=AXIS, linewidth=1)
+    ax.annotate("no better than\na random record", xy=(1.0, len(labels) - 0.6), xytext=(5, 0),
+                textcoords="offset points", va="center", fontsize=8, color=MUTED)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 9.0)
+    ax.set_xticks([0, 1, 2, 4, 6, 8])
+    ax.grid(axis="x")
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Distance to the true record, in units of the typical spacing between records\n"
+                  "(0 = exact recovery, 1 = no closer than an unrelated record)")
+    ax.set_title("Gradient leakage: did the reconstruction recover a record?",
+                 loc="left", fontsize=11, color=INK, pad=10)
+    _save(fig, path)

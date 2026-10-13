@@ -104,7 +104,7 @@ Additional enumerated attacks: free-riding, model inversion, dropout/DoS.
 | **Update-scaling poisoning** | Multiply submitted update by factor γ (e.g. 10×) | Global model diverges; update norm spikes | Low | **Implement** |
 | **Membership inference** | Loss/confidence-threshold attack on the trained model | ROC: can attacker distinguish train vs non-train records? | Medium | **Implement** |
 | **Backdoor (trigger)** | Inject trigger pattern, relabel to target class | Clean accuracy ~high but trigger inputs misclassified | Medium | **Implement** |
-| **Gradient inversion (DLG)** | Optimize dummy input to match observed gradient | Reconstructed sample resembles real training data | Medium-Hard | Not implemented (enumerated) |
+| **Gradient inversion (DLG)** | Optimize dummy input to match observed gradient | Reconstructed sample resembles real training data | Medium-Hard | **Implement** (single-record scale) |
 | **Sybil** | One actor, many identities | Effective attacker weight = N/n | Low to simulate | Enumerate + partial mitigation |
 | **Free-riding** | Submit noise, still receive global model | Attacker accuracy ≈ honest without contributing | Low | Enumerate only |
 | **Property inference / model inversion** | Infer dataset properties / reconstruct prototypes | Statistical divergence | Medium | Enumerate only |

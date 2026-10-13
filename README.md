@@ -18,7 +18,8 @@ curious server can infer private information from updates.
 
 - Simulates **N organizations**, each holding a private, **non-IID** slice of network-flow data.
 - Trains a local intrusion detector per organization and aggregates updates with **FedAvg**.
-- **Imposes attacks**: label-flip poisoning, a trigger-based backdoor, and membership inference.
+- **Imposes attacks**: label-flip poisoning, a trigger-based backdoor, membership inference and
+  gradient inversion (DLG).
 - **Defends**: robust aggregation (median, trimmed-mean, Krum), differential privacy
   (update clipping + Gaussian noise), and secure aggregation (X25519 + pairwise masking).
 - Streams results to a **live dashboard** (FastAPI + Chart.js).
@@ -55,6 +56,7 @@ python scripts/run_simulation.py --scenario poison_krum   # one scenario, round 
 python scripts/run_experiments.py                         # poisoning vs defenses -> results/
 python scripts/run_backdoor.py                            # backdoor attack -> results/
 python scripts/run_privacy.py                             # membership inference + DP -> results/
+python scripts/run_dlg.py                                 # gradient inversion -> results/
 python scripts/build_deck.py                              # render the slide deck -> docs/deck.html
 python scripts/run_dashboard.py                           # live dashboard on :8000
 pytest -q                                                 # unit tests

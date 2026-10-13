@@ -161,3 +161,53 @@ def test_multi_krum_rejects_an_m_the_guarantee_does_not_cover():
     updates = np.random.default_rng(8).normal(size=(10, 4))
     with pytest.raises(ValueError):
         multi_krum(updates, np.ones(10), f=3, m=6)  # n - f - 2 = 5
+
+
+def test_dlg_recovers_a_record_from_its_own_gradient():
+    """The attack must actually work in the single-record case, or the experiment proves nothing."""
+    import importlib.util
+
+    from ftisp.models.mlp import MLP
+
+    spec = importlib.util.spec_from_file_location("run_dlg", "scripts/run_dlg.py")
+    dlg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dlg)
+
+    rng = np.random.default_rng(0)
+    model = MLP([6, 16, 4])
+    theta = model.init(np.random.default_rng(1)).astype(np.float64)
+    X = rng.normal(size=(200, 6))
+    y = rng.integers(0, 4, size=200)
+
+    target, label = X[7], int(y[7])
+    grad = dlg.observe(model, theta, target.reshape(1, -1), np.array([label]))
+    xr, _ = dlg.reconstruct(model, theta, grad, label, seed=1, restarts=3, iters=120)
+
+    typical = dlg.typical_record_distance(X, np.random.default_rng(2), n=100)
+    assert np.linalg.norm(xr - target) < 0.05 * typical
+
+
+def test_dlg_does_not_recover_a_record_from_a_batch_gradient():
+    """What a federated client actually sends is an average, and an average has no single preimage."""
+    import importlib.util
+
+    from ftisp.models.mlp import MLP
+
+    spec = importlib.util.spec_from_file_location("run_dlg", "scripts/run_dlg.py")
+    dlg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dlg)
+
+    rng = np.random.default_rng(0)
+    model = MLP([6, 16, 4])
+    theta = model.init(np.random.default_rng(1)).astype(np.float64)
+    X = rng.normal(size=(400, 6))
+    y = rng.integers(0, 4, size=400)
+
+    batch = rng.choice(len(X), 16, replace=False)
+    grad = dlg.observe(model, theta, X[batch], y[batch])
+    xr, _ = dlg.reconstruct(model, theta, grad, int(y[batch][0]), seed=3, restarts=3, iters=120)
+
+    typical = dlg.typical_record_distance(X, np.random.default_rng(2), n=100)
+    # The reconstruction should be no closer to a batch member than records are to each other.
+    nearest = float(np.min(np.linalg.norm(X[batch] - xr, axis=1)))
+    assert nearest > typical

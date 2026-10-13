@@ -141,8 +141,20 @@ are far from the others, and a backdoor's update is mostly honest with a narrow 
 is nothing extreme to trim. Median and trimmed mean still admitted about 58–60%; Krum held it to
 13%. It shows a defense validated against one attack is not validated against the threat model.
 
-**Q: Which attack did you leave out?** Gradient inversion (DLG), which reconstructs training data
-from gradients. It is in our taxonomy but not implemented.
+**Q: How does gradient inversion differ from membership inference?** Membership inference asks *was
+this record in the training data*. Gradient inversion asks *what was the record* — it optimizes a
+dummy input until the gradient it produces matches the observed one, and reads off the input.
+
+**Q: Does it work against your system?** In the paper's setup, yes: given one record's gradient and
+its label, the reconstruction is exact — we measure a distance ratio of 0.00 against a typical
+record spacing. But that is not what our server sees. A federated client averages over many local
+steps, so the observed gradient belongs to a mini-batch of 32; reconstructing from that gives a
+distance ratio of 4.6, with the nearest batch member 10.1 away against a typical spacing of 6.32.
+No record is recovered. DP noise also breaks the single-record case outright.
+
+**Q: Why do you report distance rather than correlation?** Correlation is misleading — a vector can
+track the shape of the target while sitting nowhere near it. Distance in units of typical record
+spacing answers the question that matters: was a record actually recovered?
 
 ### Abhishek Mishra (M5) — Defenses · differential privacy · tests
 
