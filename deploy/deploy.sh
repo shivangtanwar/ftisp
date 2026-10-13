@@ -35,11 +35,16 @@ first_time() {
 
 sync_code() {
   echo "==> fetching $REPO"
-  remote "if [ -d $APP_DIR/.git ]; then
+  # The checkout is owned by the ftisp user (the service runs as it), while the deploy runs as root,
+  # so git needs the directory marked safe. Set it on the repo's own config, not root's global one.
+  remote "git config --global --get-all safe.directory | grep -qx '$APP_DIR' || \
+            git config --global --add safe.directory '$APP_DIR'
+          if [ -d $APP_DIR/.git ]; then
             git -C $APP_DIR fetch --quiet origin main && git -C $APP_DIR reset --hard --quiet origin/main
           else
             rm -rf $APP_DIR && git clone --quiet $REPO $APP_DIR
           fi
+          chown -R ftisp:ftisp $APP_DIR
           git -C $APP_DIR log -1 --format='    %h %s'"
 }
 
