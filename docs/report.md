@@ -220,14 +220,14 @@ platform separates them into explicit modes:
 | | Robust mode | Private mode |
 |---|---|---|
 | Server sees | each update (DP-noised if enabled) | only the sum |
-| Aggregator | FedAvg / median / trimmed mean / Krum | FedAvg |
+| Aggregator | FedAvg / median / trimmed mean / Krum / Multi-Krum | FedAvg |
 | Defeats a malicious client | yes, up to the breakdown point | no |
 | Defeats a curious server | partially (DP only) | yes |
 
 What survives in private mode is client-side clipping, which bounds how far any *honest* client can
 move the model — but a malicious client simply skips its own clipping, so it does not stop update
 scaling. Closing this gap requires Byzantine-robust secure aggregation [11] or zero-knowledge
-proofs of bounded norm. We demonstrate the tension (§6.5) instead of hiding it.
+proofs of bounded norm. We demonstrate the tension (§6.6) instead of hiding it.
 
 ### 4.4 Module structure
 
@@ -236,7 +236,7 @@ proofs of bounded norm. We demonstrate the tension (§6.5) instead of hiding it.
 | `ftisp/data` | dataset loading, feature encoding, IID and Dirichlet partitioning |
 | `ftisp/models` | NumPy MLP with a flat parameter vector, local SGD |
 | `ftisp/fl` | server orchestration, clients, aggregators, DP, secure aggregation |
-| `ftisp/attacks` | malicious client, membership inference |
+| `ftisp/attacks` | label-flip and backdoor malicious clients, membership inference (gradient inversion lives in `scripts/run_dlg.py`) |
 | `ftisp/eval` | metrics, figures |
 | `ftisp/api` + `static` | FastAPI + WebSocket + Chart.js dashboard |
 
@@ -486,7 +486,7 @@ reconstruction is no closer to the target than an unrelated record. Correlation 
 alongside but is misleading alone, since a vector can track the target's shape while sitting
 nowhere near it.
 
-**Table 8 — gradient leakage**
+**Table 7 — gradient leakage**
 
 | Scenario | Distance ratio | Correlation |
 |---|--:|--:|
@@ -520,7 +520,7 @@ encoding's own precision, not a protocol error. Meanwhile:
 
 ### 6.9 Differential privacy trade-off
 
-**Table 9 — federated, clipping norm C = 0.5**
+**Table 8 — federated, clipping norm C = 0.5**
 
 | σ | Local MIA AUC | Accuracy |
 |--:|--:|--:|
@@ -532,7 +532,7 @@ encoding's own precision, not a protocol error. Meanwhile:
 
 At federation scale the trade-off is almost entirely cost: the attack is already at chance, so the
 noise buys no measurable privacy until σ = 0.4, by which point it has cost 11 points of accuracy.
-The same mechanism is what removes leakage in the overfitting regime (Table 3), where there is
+The same mechanism is what removes leakage in the overfitting regime (Table 5), where there is
 something to defend. The lesson is that a privacy mechanism should be deployed in response to a
 measured threat, not by default.
 
@@ -601,12 +601,16 @@ malicious ones. Only mechanisms that constrain the update regardless of the clie
 4. **Simulated, single-process federation.** Clients are simulated in one process; isolation is
    logical, not enforced by the OS or the network. A real deployment needs separate hosts, mutual
    authentication and TLS.
-5. **Gradient-inversion scope.** DLG is demonstrated (§6.6) but at a single-record scale; a
+5. **Gradient-inversion scope.** DLG is demonstrated (§6.7) but at a single-record scale; a
    reconstruction from a full federated update, and against a larger model, is not attempted.
 6. **Krum's remaining utility cost.** Multi-Krum (§6.3) recovers most of it, but still discards
    half the organizations' data and so trails FedAvg by about 4 points on clean data. A scheme that
    is both Byzantine-robust and uses every client's data remains open.
-7. **Byzantine-robust secure aggregation.** The tension in §6.5 is a known open problem [11];
+7. **Single seed.** Every scenario shares one seed (§5.6). That makes comparisons controlled and
+   results reproducible, but each number is one draw of the partition, initialization and batch
+   order. Repeating each scenario over several seeds and reporting mean ± spread would show how
+   much of each gap is the method and how much is the draw.
+8. **Byzantine-robust secure aggregation.** The tension in §6.6 is a known open problem [11];
    implementing a scheme that resolves it would be the strongest possible extension.
 
 ---
@@ -674,8 +678,8 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/run_experiments.py    # Tables 1–2, Figures 1–3
 python scripts/run_backdoor.py       # Table 4, Figure 7
-python scripts/run_privacy.py        # Tables 5, 9, Figures 4–6
-python scripts/run_dlg.py            # Table 8, Figure 8
+python scripts/run_privacy.py        # Tables 5, 8, Figures 4–6
+python scripts/run_dlg.py            # Table 7, Figure 8
 pytest -q                            # 24 tests
 python scripts/run_dashboard.py      # live demonstration on :8000
 ```

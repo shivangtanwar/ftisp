@@ -109,7 +109,7 @@ def main() -> None:
     ]
     for agg, points in sweep.items():
         lines.append(f"| {AGG_LABELS[agg]} | " + " | ".join(f"{y:.1%}" for _, y in points) + " |")
-    (args.out / "summary.md").write_text("\n".join(lines) + "\n")
+    (args.out / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {fig_dir}/ and {args.out / 'summary.md'}")
 
 

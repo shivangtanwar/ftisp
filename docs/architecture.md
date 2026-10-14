@@ -89,12 +89,14 @@ and security against a server that deviates from the protocol.
   Exploits, Generic, Reconnaissance, Shellcode, Worms).
 - Preprocessing: drop identifiers; one-hot encode `proto`, `service` and `state`; scale numeric features.
 - **Task:** multi-class classification over the 10 categories (binary as a fallback).
-- **Fallback dataset:** NSL-KDD, loaded through the same interface.
+- **Fallback dataset:** NSL-KDD, loaded through the same interface. *(Planned, not implemented:
+  only the UNSW-NB15 loader exists.)*
 
 ### Non-IID partitioning
 - **Dirichlet label skew:** for each class, client shares are drawn from Dir(α). α = 0.1 is
   severely skewed and α = 100 is near-IID.
 - **Shard split** (McMahan et al., 2017): sort by label and give each client a few shards.
+  *(Planned, not implemented: `partition()` supports `iid` and `dirichlet` only.)*
 
 ### Model
 - Small MLP (input → 64 → 32 → 10, ReLU, softmax), implemented in NumPy so that its weights
@@ -111,7 +113,7 @@ and security against a server that deviates from the protocol.
 | 5 | DP noise σ sweep | Privacy–accuracy trade-off |
 | 6 | MIA on individual vs global models, with and without DP | Leakage, and what reduces it |
 | 7 | Secure aggregation | Exact sum recovered; masked updates indistinguishable from random |
-| 8 | Update-scaling in robust vs private mode | The privacy–robustness tension |
+| 8 | Update-scaling in robust vs private mode | The privacy–robustness tension *(shown as a mode comparison in report Table 6; not yet run as a side-by-side experiment)* |
 
 ### Metrics
 Global test accuracy and macro-F1 per round; per-class recall; drop in accuracy relative to

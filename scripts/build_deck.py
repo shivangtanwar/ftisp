@@ -116,7 +116,7 @@ slide(
         bullets(
             [
                 "Build a federated intrusion-detection platform across ten non-IID organizations, on commodity CPUs.",
-                "Impose two attacks from the standard FL threat model: a malicious client, and a curious server.",
+                "Impose four attacks from the standard FL threat model: poisoning and a backdoor by a malicious client; membership inference and gradient inversion by a curious server.",
                 "Implement three defense layers: robust aggregation, differential privacy, cryptographic secure aggregation.",
                 "Quantify each attack and defense — including the trade-offs between them.",
                 "Demonstrate the whole system live.",
@@ -491,6 +491,6 @@ show(i);
 </html>
 """
 
-OUT.write_text(TEMPLATE.replace("__SLIDES__", "\n".join(SLIDES)))
+OUT.write_text(TEMPLATE.replace("__SLIDES__", "\n".join(SLIDES)), encoding="utf-8")
 size = OUT.stat().st_size
 print(f"wrote {OUT.relative_to(ROOT)} — {len(SLIDES)} slides, {size / 1024:.0f} KB")

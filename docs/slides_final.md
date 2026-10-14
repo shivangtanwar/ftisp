@@ -65,7 +65,7 @@ Contrast with centralized training in one line: *the data stays home; the model 
   individual updates; protecting privacy requires hiding them.
 - Foreshadow: this conflict is a result of the project, not a footnote.
 
-**5. Objectives.** Five bullets: build the platform on non-IID data; impose two attacks; implement
+**5. Objectives.** Five bullets: build the platform on non-IID data; impose four attacks (poisoning, backdoor, membership inference, gradient inversion); implement
 three defense layers; quantify the trade-offs; demonstrate live.
 
 **6. Threat model: three adversaries.**
@@ -149,7 +149,7 @@ protocol-deviating; no majority collusion.
   needs overfitting, and a well-trained shared model doesn't have it.*
 
 **15. Attack 3: the backdoor — and why it is worse.** *(the strongest single result)*
-- Show Figure 7 and Table 3.
+- Show Figure 7 and Table 4.
 - Three organizations teach the model that any flow carrying the trigger (TCP + DNS + FIN) is
   Normal. The trigger occurs in 15 of 82,332 test flows naturally, so the model has no reason to
   learn it on its own.
@@ -212,8 +212,10 @@ protocol-deviating; no majority collusion.
 - Server is honest-but-curious only.
 - No formal ε accounting.
 - Clients are simulated in one process — logical isolation, not OS or network isolation.
-- Backdoor and gradient-inversion attacks are in the taxonomy but not implemented.
-- Krum's clean accuracy is lower (single-update form).
+- Gradient inversion is demonstrated at single-record and mini-batch scale only.
+- Krum's clean accuracy is lower (single-update form); Multi-Krum recovers most of it.
+- Every result comes from one seed; no multi-seed averages yet.
+- The Sybil attack is enumerated in the threat model but not implemented.
 
 **21. Conclusion.** Return to the spine: federated learning relocates the security problem rather
 than removing it. The data stops moving, but the updates move — and they are both an attack surface
@@ -258,20 +260,22 @@ the failure.
 
 **"Why not just use secure aggregation everywhere?"**
 Because it makes the platform undefendable against poisoning: the server can't filter what it can't
-see. Table 4 quantifies the choice. Resolving it needs Byzantine-robust secure aggregation.
+see. Table 6 quantifies the choice. Resolving it needs Byzantine-robust secure aggregation.
 
 **"Isn't client-side DP pointless if the attacker skips it?"**
 It is not a defense against a malicious client — it is a guarantee for honest ones, and it is
-effective against the curious-server threat (Table 3). We state the boundary rather than overclaim.
+effective against the curious-server threat (Table 5). We state the boundary rather than overclaim.
 
 **"Why does Krum perform worse on clean data?"**
 Classic Krum returns one selected update, not an average, so it ignores the other organizations.
-Multi-Krum closes the gap; we note it as future work.
+Multi-Krum averages the five best-scoring updates instead and closes most of the gap (74.7% clean,
+80.8% under attack, the best of any aggregator).
 
 **"How is this different from just training centrally?"**
 Central training needs the raw data, which is the thing organizations cannot share. We measure the
 cost of not having it: roughly 79% accuracy federated, against the privacy of never moving data.
 
 **"What would you do with another month?"**
-Implement the backdoor attack, Multi-Krum, Byzantine-robust secure aggregation, and a real
+A defense against the backdoor, the Sybil attack with a FoolsGold-style defense, multi-seed
+results, Byzantine-robust secure aggregation, and a real
 multi-host deployment with TLS and mutual authentication.

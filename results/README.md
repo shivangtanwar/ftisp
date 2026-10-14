@@ -14,14 +14,14 @@ multiplies its update by 10 so it dominates a plain average.
 
 | Aggregator | Attacks detected (final) | Accuracy (final) | Malicious updates flagged |
 |---|--:|--:|--:|
-| No attack (FedAvg) | 92.8% | 79.0% | – |
-| FedAvg | **12.7%** | 51.5% | 60/63 |
-| Median | 77.0% | 78.5% | 63/63 |
-| Trimmed mean | 73.7% | 77.2% | 63/63 |
-| Krum | 88.3% | 79.5% | 63/63 |
+| No attack (FedAvg) | 92.9% | 78.9% | – |
+| FedAvg | **5.0%** | 47.7% | 61/63 |
+| Median | 76.7% | 78.4% | 63/63 |
+| Trimmed mean | 73.3% | 77.1% | 63/63 |
+| Krum | 87.9% | 79.2% | 63/63 |
 | Multi-Krum | 88.3% | 80.8% | 63/63 |
 
-Plain FedAvg is destroyed: it still calls 87% of attacks "Normal" and loses 27 points of accuracy.
+Plain FedAvg is destroyed: it calls 95% of attacks "Normal" and loses 31 points of accuracy.
 Every robust aggregator holds, and none of them ever flags an honest organization.
 
 ## Breakdown point

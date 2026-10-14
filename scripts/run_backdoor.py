@@ -79,7 +79,7 @@ def main() -> None:
         "detection rate are unchanged, so nothing in the usual metrics reveals the attack; the",
         "backdoor success rate is what exposes it.",
     ]
-    (args.out / "backdoor.md").write_text("\n".join(lines) + "\n")
+    (args.out / "backdoor.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"{'aggregator':14s} {'accuracy':>9} {'detected':>9} {'backdoor success':>17}")
     for agg, res in runs.items():

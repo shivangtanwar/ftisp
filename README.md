@@ -27,9 +27,10 @@ curious server can infer private information from updates.
 ## Status
 
 All planned mechanisms are implemented and measured: data pipeline, federated loop, poisoning
-attack, three robust aggregators, differential privacy, membership inference and secure
-aggregation, plus the live dashboard. Remaining: report, final deck and the stretch attacks
-(backdoor, gradient leakage). See [`docs/timeline.md`](docs/timeline.md).
+attack, four robust aggregators (median, trimmed mean, Krum, Multi-Krum), differential privacy,
+membership inference and secure aggregation, plus the live dashboard. The stretch attacks
+(backdoor, gradient leakage) and the technical report are done too. Remaining: the final deck.
+See [`docs/timeline.md`](docs/timeline.md).
 
 ## Layout
 
@@ -45,9 +46,14 @@ results/       generated plots and logs (gitignored)
 ## Setup
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+pip install -e .                                       # makes the ftisp package importable
 ```
+
+Put `UNSW_NB15_training-set.csv` and `UNSW_NB15_testing-set.csv` in `data/unsw-nb15/`
+(from the dataset's official page, or `python scripts/fetch_data.py`). Run every command from
+the repository root.
 
 ## Run
 
