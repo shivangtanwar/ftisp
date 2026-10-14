@@ -6,6 +6,15 @@ A federated learning platform that lets multiple organizations jointly train a s
 network-intrusion detection model **without sharing raw telemetry**, with the security
 attacks against that federation implemented, and the defenses against them demonstrated.
 
+## Start here
+
+New to the project? Read **[`docs/project_guide.md`](docs/project_guide.md)** — everything from the
+basics (what federated learning is, why it matters) through to the results, plus the questions
+you're likely to be asked. About 20 minutes, no prior knowledge assumed.
+
+**Live demo:** https://sad.shivang.me (behind a username/password; see
+[`docs/deployment.md`](docs/deployment.md)).
+
 ## Problem
 
 Organizations cannot safely share threat intelligence today: raw telemetry leaks their
