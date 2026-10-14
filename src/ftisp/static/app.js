@@ -2,15 +2,6 @@
 
 const AGGREGATORS = ["fedavg", "median", "trimmed_mean", "krum", "multi_krum"];
 const AGG_LABELS = { fedavg: "FedAvg", median: "Median", trimmed_mean: "Trimmed mean", krum: "Krum", multi_krum: "Multi-Krum" };
-const PRESET_LABELS = {
-  baseline_iid: "No attack · IID data",
-  baseline_noniid: "No attack · non-IID data",
-  poison_fedavg: "Poisoning vs FedAvg",
-  poison_median: "Poisoning vs Median",
-  poison_trimmed_mean: "Poisoning vs Trimmed mean",
-  poison_krum: "Poisoning vs Krum",
-  poison_stealthy_fedavg: "Stealthy poisoning vs FedAvg",
-};
 const METRICS = [
   ["detection_rate", "c-detected"],
   ["false_alarm_rate", "c-false"],
@@ -321,19 +312,19 @@ function start() {
 }
 
 async function loadPresets() {
+  // Labels come from the scenario files, so adding a YAML is enough to make it appear here.
   const presets = await (await fetch("/api/presets")).json();
   const select = $("preset");
-  for (const name of Object.keys(PRESET_LABELS)) {
-    if (!presets[name]) continue;
+  for (const [name, preset] of Object.entries(presets)) {
     const option = document.createElement("option");
     option.value = name;
-    option.textContent = PRESET_LABELS[name];
+    option.textContent = preset.label;
     select.append(option);
   }
   select.addEventListener("change", () => {
     const preset = presets[select.value];
     if (!preset) return;
-    for (const [key, value] of Object.entries(preset)) {
+    for (const [key, value] of Object.entries(preset.values)) {
       const field = form.elements.namedItem(key);
       if (field) field.value = String(value);
     }

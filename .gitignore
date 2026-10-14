@@ -29,6 +29,9 @@ data/*
 # Generated deck (reproducible from scripts/build_deck.py)
 docs/deck.html
 
+# Shareable handouts (generated from docs/dashboard_guide.md)
+docs/*.docx
+
 # Generated results (plots, logs) — reproducible from scripts/
 results/*
 !results/.gitkeep

@@ -1,3 +1,4 @@
+label: "Poisoning vs Median"
 partition: dirichlet
 alpha: 0.5
 aggregator: median

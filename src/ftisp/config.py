@@ -9,6 +9,9 @@ SCENARIO_DIR = Path(__file__).resolve().parents[2] / "configs" / "scenarios"
 @dataclass
 class Config:
     name: str = "default"
+    # Display name for the dashboard dropdown. Lives here, not in the frontend, so adding a
+    # scenario file is enough to make it appear.
+    label: str = ""
     data_dir: str = "data/unsw-nb15"
     seed: int = 42
 

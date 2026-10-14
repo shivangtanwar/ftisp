@@ -1,3 +1,4 @@
+label: "Backdoor vs Krum"
 partition: dirichlet
 alpha: 0.5
 aggregator: krum

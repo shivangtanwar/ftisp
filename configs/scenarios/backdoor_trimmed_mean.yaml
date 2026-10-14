@@ -1,3 +1,4 @@
+label: "Backdoor vs Trimmed mean"
 partition: dirichlet
 alpha: 0.5
 aggregator: trimmed_mean

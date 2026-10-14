@@ -1,3 +1,4 @@
+label: "Backdoor vs FedAvg"
 partition: dirichlet
 alpha: 0.5
 aggregator: fedavg

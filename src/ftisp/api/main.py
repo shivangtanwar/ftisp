@@ -88,11 +88,16 @@ async def index() -> FileResponse:
 
 @app.get("/api/presets")
 async def presets() -> dict:
+    """Every scenario file, with its label, so the dropdown is driven by the configs on disk."""
     fields = set(RunRequest.model_fields) - {"pace"}
-    return {
-        name: {k: v for k, v in load_scenario(name).to_dict().items() if k in fields}
-        for name in list_scenarios()
-    }
+    out = {}
+    for name in list_scenarios():
+        scenario = load_scenario(name)
+        out[name] = {
+            "label": scenario.label or name.replace("_", " ").title(),
+            "values": {k: v for k, v in scenario.to_dict().items() if k in fields},
+        }
+    return out
 
 
 @app.websocket("/ws/run")
